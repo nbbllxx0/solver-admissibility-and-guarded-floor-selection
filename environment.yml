@@ -1,0 +1,17 @@
+name: paper5-solver-admissibility
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.18
+  - pip=24.3
+  - pip:
+      - cupy-cuda12x==13.6.0
+      - numpy==2.2.6
+      - scipy==1.15.3
+      - matplotlib==3.10.7
+      - pandas==2.3.3
+      - pyvista==0.46.3
+      - scikit-image==0.25.2
+      - pyamg==5.3.0
+      - pynvml==13.0.1
+      - nvidia-ml-py==13.595.45

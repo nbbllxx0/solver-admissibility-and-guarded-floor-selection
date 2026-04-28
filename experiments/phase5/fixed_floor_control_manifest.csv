@@ -1,0 +1,7 @@
+case_id,case_type,preset,seed,solid_probability,density_path,floors,penal
+cant_s23_p035,random,cantilever_gpu_medium,23,0.35,,1e-12;1e-3;1e-2,4.5
+cant_s31_p035,random,cantilever_gpu_medium,31,0.35,,1e-12;1e-3;1e-2,4.5
+bridge_s23_p035,random,bridge_gpu_medium,23,0.35,,1e-2,4.5
+C64_MF,density,cantilever_gpu_medium,,,experiments/paper2/runs/C64_MF/rho_final.npy,1e-12;1e-3;1e-2,4.5
+C512_MF,density,cantilever_gpu_xlarge,,,experiments/paper2/runs/C512_MF/rho_final.npy,1e-12;1e-3;1e-2,4.5
+Brk500_MF,density,bracket_gpu_500k,,,experiments/paper2/runs/Brk500_MF/rho_final.npy,1e-12;1e-3;1e-2,4.5

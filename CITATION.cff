@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying solver-admissibility paper."
+title: "Code for Solver-Admissibility Testing of SIMP Density Floors in Matrix-Free GMG-FGMRES"
+type: software
+authors:
+  - family-names: Yang
+    given-names: Shaoliang
+    affiliation: "Santa Clara University"
+  - family-names: Wang
+    given-names: Jun
+    affiliation: "Santa Clara University"
+  - family-names: Wang
+    given-names: Yunsheng
+    affiliation: "Santa Clara University"
+license: BSD-3-Clause
+version: "1.0.0"
+date-released: "2026-04-28"
+keywords:
+  - topology optimization
+  - SIMP
+  - solver admissibility
+  - density floor
+  - geometric multigrid
+  - matrix-free finite elements
+  - FGMRES
+  - GPU
+preferred-citation:
+  type: article
+  title: "Solver-Admissibility Testing of SIMP Density Floors in Matrix-Free GMG-FGMRES"
+  authors:
+    - family-names: Yang
+      given-names: Shaoliang
+    - family-names: Wang
+      given-names: Jun
+    - family-names: Wang
+      given-names: Yunsheng
+  year: 2026
+  notes: "Update journal, DOI, and URL fields after publication."
