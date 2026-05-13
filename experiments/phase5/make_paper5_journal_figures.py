@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import gc
 import io
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,7 +20,7 @@ except ModuleNotFoundError:  # Allows data-only figures to regenerate without th
 
 ROOT = Path(__file__).resolve().parents[2]
 RESULTS = ROOT / "experiments" / "phase5" / "results"
-OUT = ROOT / "papers" / "paper5_solver_admissibility" / "figures" / "generated"
+OUT = Path(os.environ.get("PAPER5_FIGURE_OUT", str(ROOT / "figures" / "generated")))
 STRICT_FIXED_FLOOR_RESULTS = RESULTS / "gmg_fixed_floor_controls_strict_true_residual"
 STRICT_OPTIMIZED_BRIDGE_RESULTS = RESULTS / "optimized_density_B500_MF_strict_true_residual"
 REVIEW_SUMMARY_RESULTS = RESULTS / "review_experiment_summary"
@@ -43,6 +44,8 @@ def _set_style() -> None:
         {
             "figure.dpi": 170,
             "savefig.dpi": 350,
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
             "font.family": "DejaVu Sans",
             "font.size": 9,
             "axes.titlesize": 10,
@@ -61,7 +64,7 @@ def _set_style() -> None:
     )
 
 
-def _box(ax, xy, w, h, text, fc, ec=None, fontsize=9):
+def _box(ax, xy, w, h, text, fc, ec=None, fontsize=9, lw=1.2):
     patch = FancyBboxPatch(
         xy,
         w,
@@ -69,7 +72,7 @@ def _box(ax, xy, w, h, text, fc, ec=None, fontsize=9):
         boxstyle="round,pad=0.035,rounding_size=0.06",
         fc=fc,
         ec=ec or COLORS["ink"],
-        lw=1.2,
+        lw=lw,
     )
     ax.add_patch(patch)
     ax.text(
@@ -99,97 +102,116 @@ def _arrow(ax, start, end):
     )
 
 
+def _polyline_arrow(ax, points, color=None):
+    color = color or COLORS["ink"]
+    if len(points) > 2:
+        xs, ys = zip(*points[:-1])
+        ax.plot(xs, ys, color=color, lw=1.3, solid_capstyle="round")
+    ax.add_patch(
+        FancyArrowPatch(
+            points[-2],
+            points[-1],
+            arrowstyle="-|>",
+            mutation_scale=12,
+            lw=1.3,
+            color=color,
+            shrinkA=0,
+            shrinkB=4,
+        )
+    )
+
+
 def make_policy_schematic() -> None:
-    fig, ax = plt.subplots(figsize=(9.0, 3.9))
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 4.2)
+    fig, ax = plt.subplots(figsize=(7.2, 2.45))
+    ax.set_xlim(0, 12.55)
+    ax.set_ylim(1.62, 5.45)
     ax.axis("off")
 
     _box(
         ax,
-        (0.25, 2.45),
-        1.65,
-        0.85,
-        "SIMP density field\noriginal floor\n$10^{-12}$",
+        (0.25, 4.00),
+        1.50,
+        0.78,
+        "Density field\nfloor $10^{-12}$",
         COLORS["pale"],
     )
     _box(
         ax,
-        (2.25, 2.45),
-        1.65,
-        0.85,
-        "100-iteration\nGMG-FGMRES probe\nrecord $r_{50}, r_{100}$",
+        (2.05, 4.00),
+        1.55,
+        0.78,
+        "100-iter probe\nrecord $r_{50}, r_{100}$",
         "#EAF3F1",
     )
     _box(
         ax,
-        (4.25, 2.45),
-        1.65,
-        0.85,
-        "Residual rule\nhigh residual or\nplateauing residual?",
+        (3.90, 4.00),
+        1.62,
+        0.78,
+        "Residual rule\nkeep or raise?",
         "#F2E6D8",
     )
     _box(
         ax,
-        (6.25, 3.05),
+        (6.25, 4.62),
         1.55,
         0.72,
-        "Keep original floor\nif admissible",
+        "Solve at\noriginal floor",
         "#E8F1FA",
     )
     _box(
         ax,
-        (6.25, 2.00),
+        (6.25, 3.20),
         1.55,
         0.72,
-        "Escalate through\nsmall floor ladder",
+        "Solve from\nfloor ladder",
         "#FBE8E1",
     )
     _box(
         ax,
-        (8.35, 2.45),
-        1.35,
-        0.85,
-        "Smallest tested\nsolver-admissible\nfloor",
+        (8.70, 3.86),
+        1.78,
+        1.03,
+        "Final guard\ntrue residual\n$\\|f-Ku\\|/\\|f\\|$",
+        "#FFFFFF",
+        ec=COLORS["ink"],
+        lw=1.8,
+        fontsize=8.4,
+    )
+    _box(
+        ax,
+        (11.35, 4.14),
+        0.90,
+        0.74,
+        "accept",
         COLORS["sand"],
-    )
-
-    _arrow(ax, (1.9, 2.88), (2.25, 2.88))
-    _arrow(ax, (3.9, 2.88), (4.25, 2.88))
-    _arrow(ax, (5.9, 3.05), (6.25, 3.36))
-    _arrow(ax, (5.9, 2.70), (6.25, 2.36))
-    _arrow(ax, (7.8, 3.36), (8.35, 2.98))
-    _arrow(ax, (7.8, 2.36), (8.35, 2.78))
-
-    _box(
-        ax,
-        (1.15, 0.35),
-        3.10,
-        0.80,
-        "What is proved:\nfloor escalation increases\noperator coercivity.",
-        "#F7F7F7",
-        ec=COLORS["gray"],
-        fontsize=8.0,
+        fontsize=8.4,
     )
     _box(
         ax,
-        (5.15, 0.35),
-        3.70,
-        0.80,
-        "What is validated empirically:\nthe residual probe predicts keep/raise\ndecisions for this GMG stack.",
-        "#F7F7F7",
-        ec=COLORS["gray"],
-        fontsize=8.0,
+        (4.65, 2.02),
+        2.70,
+        0.78,
+        "Fallback ladder\n$10^{-3}\\rightarrow10^{-2}$;\nelse report failure",
+        "#FBE8E1",
+        ec=COLORS["red"],
+        fontsize=7.9,
     )
-    ax.text(
-        0.02,
-        3.88,
-        "a",
-        fontsize=13,
-        fontweight="bold",
-        ha="left",
-        va="top",
-    )
+    _arrow(ax, (1.75, 4.39), (2.05, 4.39))
+    _arrow(ax, (3.60, 4.39), (3.90, 4.39))
+    _arrow(ax, (5.52, 4.55), (6.25, 4.98))
+    _polyline_arrow(ax, [(5.52, 4.16), (5.72, 3.30), (5.98, 2.80)])
+    _arrow(ax, (7.80, 4.98), (8.70, 4.55))
+    _arrow(ax, (7.80, 3.56), (8.70, 4.12))
+    _arrow(ax, (10.48, 4.42), (11.35, 4.51))
+    _polyline_arrow(ax, [(9.55, 3.86), (9.55, 3.00), (7.35, 2.41)], color=COLORS["red"])
+    _arrow(ax, (6.00, 2.80), (6.85, 3.20))
+
+    ax.text(5.92, 5.14, "predict keep", fontsize=8.0, ha="center", va="bottom", color=COLORS["gray"])
+    ax.text(5.54, 3.26, "predict raise", fontsize=8.0, ha="right", va="center", color=COLORS["gray"])
+    ax.text(10.92, 4.62, "pass", fontsize=8.0, ha="center", va="bottom", color=COLORS["gray"])
+    ax.text(9.66, 3.32, "guard fail", fontsize=8.0, ha="left", va="center", color=COLORS["red"])
+
     fig.tight_layout(pad=0.25)
     fig.savefig(OUT / "fig1_solver_admissibility_policy.png", bbox_inches="tight")
     fig.savefig(OUT / "fig1_solver_admissibility_policy.pdf", bbox_inches="tight")
@@ -226,126 +248,95 @@ def _reader_case_label(case_id: str) -> str:
         "C512_MF": "large\ncantilever",
         "Brk500_MF": "large\nbracket",
         "B500_MF": "large\nbridge",
-        "cant_s23_p035": "cantilever\nseed 23\nq=0.35",
-        "cant_s31_p035": "cantilever\nseed 31\nq=0.35",
+        "cant_s23_p035": "random\ncantilever A",
+        "cant_s31_p035": "random\ncantilever B",
     }
     return labels.get(case_id, case_id.replace("_", "\n"))
 
 
 def make_evidence_matrix() -> None:
-    transfer = pd.read_csv(
-        RESULTS / "gmg_detector_transfer_summary" / "gmg_detector_transfer_summary.csv"
-    )
-    overhead = pd.read_csv(RESULTS / "gmg_policy_overhead" / "gmg_policy_overhead_summary.csv")
-    sensitivity = pd.read_csv(
-        RESULTS
-        / "gmg_solver_floor_detector_sensitivity"
-        / "gmg_threshold_sensitivity_summary.csv"
-    )
-    controls = pd.read_csv(
-        STRICT_FIXED_FLOOR_RESULTS / "fixed_floor_control_comparison_summary.csv"
-    )
-    sensitivity_perturbation = pd.read_csv(
-        REVIEW_SUMMARY_RESULTS / "sensitivity_perturbation_summary.csv"
-    )
+    heldout = pd.read_csv(REVIEW_SUMMARY_RESULTS / "heldout_full_true_labels_joined.csv")
+    false_keeps = pd.read_csv(REVIEW_SUMMARY_RESULTS / "heldout_full_true_label_false_keeps.csv")
+    baselines = pd.read_csv(REVIEW_SUMMARY_RESULTS / "policy_baseline_comparison.csv")
 
-    current = sensitivity[sensitivity["selection"] == "current_rule"].iloc[0]
-    fig, axes = plt.subplots(2, 2, figsize=(8.6, 6.4))
+    tp = int(((heldout["true_raise_floor"].astype(str) == "True") & (heldout["detector_predicted_raise"].astype(str) == "True")).sum())
+    fn = int(((heldout["true_raise_floor"].astype(str) == "True") & (heldout["detector_predicted_raise"].astype(str) != "True")).sum())
+    fp = int(((heldout["true_keep_original_floor"].astype(str) == "True") & (heldout["detector_predicted_raise"].astype(str) == "True")).sum())
+    tn = int(((heldout["true_keep_original_floor"].astype(str) == "True") & (heldout["detector_predicted_raise"].astype(str) != "True")).sum())
+
+    fig, axes = plt.subplots(2, 2, figsize=(8.8, 6.6))
     ax = axes[0, 0]
-    labels = ["true\nraise", "true\nkeep", "false\nraise", "false\nkeep"]
-    values = [
-        current["true_raise"],
-        current["true_keep"],
-        current["false_raise"],
-        current["false_keep"],
-    ]
-    ax.bar(labels, values, color=[COLORS["orange"], COLORS["teal"], COLORS["red"], COLORS["red"]])
-    ax.set_ylabel("cases")
-    ax.set_title("Retrospective detector classification")
-    ax.set_ylim(0, max(values) + 2)
-    for i, value in enumerate(values):
-        ax.text(i, value + 0.25, f"{int(value)}", ha="center", va="bottom")
+    matrix = np.array([[tp, fn], [fp, tn]], dtype=float)
+    im = ax.imshow(matrix, cmap="Blues", vmin=0, vmax=max(1, matrix.max()))
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["predict\nraise", "predict\nkeep"])
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(["true\nraise", "true\nkeep"])
+    ax.set_title("Held-out detector decisions (n=102)")
+    for (i, j), value in np.ndenumerate(matrix):
+        color = "white" if value > matrix.max() * 0.45 else COLORS["ink"]
+        ax.text(j, i, f"{int(value)}", ha="center", va="center", fontsize=13, fontweight="bold", color=color)
+    ax.text(
+        0.5,
+        -0.20,
+        "Four predicted keeps are unsafe without the final guard.",
+        transform=ax.transAxes,
+        ha="center",
+        va="top",
+        fontsize=8,
+    )
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
+    cbar.ax.tick_params(labelsize=7)
     ax.text(-0.16, 1.06, "a", transform=ax.transAxes, fontsize=13, fontweight="bold")
 
     ax = axes[0, 1]
-    order = [
-        "cantilever random prospective",
-        "bridge random geometry transfer",
-        "optimized SIMP density",
-    ]
-    floor_order = [1e-12, 1e-3, 1e-2]
-    counts = (
-        transfer.assign(rho=lambda d: d["recommended_rho_min"].astype(float))
-        .groupby(["category", "rho"])
-        .size()
-        .unstack(fill_value=0)
-        .reindex(order)
-        .reindex(columns=floor_order, fill_value=0)
-    )
-    bottom = np.zeros(len(order))
-    x = np.arange(len(order))
-    floor_colors = [COLORS["teal"], COLORS["blue"], COLORS["orange"]]
-    for floor, color in zip(floor_order, floor_colors):
-        vals = counts[floor].to_numpy()
-        ax.bar(x, vals, bottom=bottom, color=color, label=_floor_label(floor))
-        bottom += vals
-    ax.set_xticks(x)
-    ax.set_xticklabels(["prospective\ncantilever", "bridge\ntransfer", "optimized\ndensity"])
-    ax.set_ylabel("selected solves")
-    ax.set_title("Selected floor distribution")
-    ax.legend(title="$\\rho_{\\min}$", frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.16))
+    recovery_labels = ["detector-only\nunsafe keeps", "guard\nfallbacks", "final\nfailures"]
+    recovery_values = [len(false_keeps), int(false_keeps["post_solve_fallback_triggered"].astype(int).sum()), int((heldout["solve_converged_guarded"].astype(int) == 0).sum())]
+    ax.bar(recovery_labels, recovery_values, color=[COLORS["red"], COLORS["blue"], COLORS["teal"]])
+    ax.set_ylim(0, max(recovery_values) + 1.3)
+    ax.set_ylabel("cases")
+    ax.set_title("True-residual guard recovery")
+    for i, value in enumerate(recovery_values):
+        ax.text(i, value + 0.12, f"{int(value)}", ha="center", va="bottom", fontweight="bold")
     ax.text(-0.16, 1.06, "b", transform=ax.transAxes, fontsize=13, fontweight="bold")
 
     ax = axes[1, 0]
-    cats = ["cantilever random prospective", "bridge random geometry transfer", "optimized SIMP density"]
-    short = ["prospective\ncantilever", "bridge\ntransfer", "optimized\ndensity"]
-    ov = overhead.set_index("category").loc[cats]
-    width = 0.26
-    x = np.arange(len(cats))
-    ax.bar(x - width, ov["mean_selected_solve_iters"], width, color=COLORS["teal"], label="selected solve")
-    ax.bar(x, ov["mean_reuse_enabled_policy_iters"], width, color=COLORS["blue"], label="reuse-enabled policy")
-    ax.bar(x + width, ov["mean_recorded_policy_iters"], width, color=COLORS["orange"], label="recorded policy")
+    selected = heldout["recommended_rho_min_guarded"].astype(float)
+    floor_order = [1e-12, 1e-3, 1e-2]
+    counts = [int(np.isclose(selected, floor).sum()) for floor in floor_order]
+    x = np.arange(len(floor_order))
+    ax.bar(x, counts, color=[COLORS["teal"], COLORS["blue"], COLORS["orange"]])
     ax.set_xticks(x)
-    ax.set_xticklabels(short)
-    ax.set_ylabel("FGMRES iterations")
-    ax.set_title("Policy overhead")
-    ax.legend(frameon=False)
+    ax.set_xticklabels([_floor_label(v) for v in floor_order])
+    ax.set_ylabel("held-out cases")
+    ax.set_title("Selected floors after\nguarded policy")
+    ax.set_ylim(0, max(counts) + 10)
+    for i, value in enumerate(counts):
+        ax.text(i, value + 1.2, f"{value}", ha="center", va="bottom", fontweight="bold")
     ax.text(-0.16, 1.06, "c", transform=ax.transAxes, fontsize=13, fontweight="bold")
 
     ax = axes[1, 1]
-    subset = controls[controls["case_type"].isin(["random", "density"])].copy()
-    comp = subset.pivot(
-        index="case_type",
-        columns="rho_min",
-        values="mean_abs_relative_compliance_change",
-    ).loc[["random", "density"]]
-    sens = sensitivity_perturbation.set_index("rho_min")["mean_rel_dc_l2_solid"]
-    plot_df = pd.DataFrame(
-        {
-            0.001: [
-                comp.loc["random", 0.001],
-                comp.loc["density", 0.001],
-                sens.loc[0.001],
-            ],
-            0.01: [
-                comp.loc["random", 0.01],
-                comp.loc["density", 0.01],
-                sens.loc[0.01],
-            ],
-        },
-        index=["random\ncompliance", "optimized\ncompliance", "true-keep\nsensitivity"],
-    )
-    x = np.arange(len(plot_df))
-    ax.bar(x - 0.17, plot_df[0.001], 0.34, color=COLORS["blue"], label="$10^{-3}$")
-    ax.bar(x + 0.17, plot_df[0.01], 0.34, color=COLORS["orange"], label="$10^{-2}$")
+    policy_order = [
+        ("guarded_probe_policy", "guarded"),
+        ("original_floor_full_then_fallback", "full\nfallback"),
+        ("always_1e-03", "fixed\n$10^{-3}$"),
+        ("always_1e-02", "fixed\n$10^{-2}$"),
+        ("probe_severity_jump_1e-02", "severity\njump"),
+    ]
+    rows = baselines.set_index("policy").loc[[key for key, _ in policy_order]]
+    x = np.arange(len(rows))
+    mean_vals = rows["mean_time_s"].astype(float).to_numpy()
+    med_vals = rows["median_time_s"].astype(float).to_numpy()
+    colors = [COLORS["blue"], COLORS["gray"], COLORS["teal"], COLORS["orange"], COLORS["sand"]]
+    ax.bar(x, mean_vals, color=colors, edgecolor="white", linewidth=0.7, label="mean")
+    ax.scatter(x, med_vals, color=COLORS["ink"], marker="D", s=26, zorder=3, label="median")
     ax.set_xticks(x)
-    ax.set_xticklabels(plot_df.index)
-    ax.set_ylabel("mean relative change")
-    ax.set_title("Fixed high-floor perturbation")
-    ax.legend(title="$\\rho_{\\min}$", frameon=False)
-    for xpos, row in enumerate(plot_df.to_numpy()):
-        for dx, val in [(-0.17, row[0]), (0.17, row[1])]:
-            ax.text(xpos + dx, val + 0.015, f"{val:.2f}", ha="center", va="bottom", fontsize=8)
+    ax.set_xticklabels([label for _, label in policy_order])
+    ax.set_ylabel("wall time per case (s)")
+    ax.set_title("Policy timing on the same 102 cases")
+    ax.legend(frameon=False, loc="upper right")
+    for xpos, val in enumerate(mean_vals):
+        ax.text(xpos, val + 3.2, f"{val:.1f}", ha="center", va="bottom", fontsize=8)
     ax.text(-0.16, 1.06, "d", transform=ax.transAxes, fontsize=13, fontweight="bold")
 
     fig.tight_layout()
@@ -418,15 +409,23 @@ def make_residual_phase_map() -> None:
     data["probe_r50"] = pd.to_numeric(data["probe_r50"], errors="coerce")
     data["probe_r100_over_r50"] = pd.to_numeric(data["probe_r100_over_r50"], errors="coerce")
     data = data.dropna(subset=["probe_r50", "probe_r100_over_r50"])
+    heldout = pd.read_csv(
+        RESULTS
+        / "heldout_gmg_detector_cantilever_s41_71_guarded_true_residual"
+        / "prospective_summary.csv"
+    )
+    heldout["probe_r50"] = pd.to_numeric(heldout["probe_r50"], errors="coerce")
+    heldout["probe_r100_over_r50"] = pd.to_numeric(heldout["probe_r100_over_r50"], errors="coerce")
+    heldout_false_keeps = heldout[heldout["detector_false_keep"].astype(int) == 1].copy()
 
-    fig, ax = plt.subplots(figsize=(6.4, 4.5))
+    fig, ax = plt.subplots(figsize=(7.5, 4.7))
     style = {
         "true_raise": ("o", COLORS["orange"], "retrospective true raise"),
         "true_keep": ("o", COLORS["teal"], "retrospective true keep"),
         "predicted raise": ("^", COLORS["orange"], "prospective raise"),
         "predicted keep": ("^", COLORS["teal"], "prospective keep"),
-        "selected raise": ("s", COLORS["red"], "transfer raise"),
-        "selected keep": ("s", COLORS["blue"], "transfer keep"),
+        "selected raise": ("s", COLORS["red"], "selected raise"),
+        "selected keep": ("s", COLORS["blue"], "selected keep"),
     }
     for decision, group in data.groupby("decision"):
         marker, color, label = style.get(decision, ("o", COLORS["gray"], decision))
@@ -441,17 +440,81 @@ def make_residual_phase_map() -> None:
             alpha=0.9,
             label=label,
         )
+    x_min = 8e-6
+    xs = np.logspace(np.log10(x_min), np.log10(0.8), 360)
+    plateau_boundary = np.maximum(0.6, 1e-4 / xs)
+    ax.axvspan(1e-2, 0.8, color=COLORS["orange"], alpha=0.08, label="raise: high $r_{50}$", zorder=0)
+    ax.fill_between(
+        xs,
+        plateau_boundary,
+        1.08,
+        where=plateau_boundary < 1.08,
+        color=COLORS["red"],
+        alpha=0.07,
+        label="raise: plateau + $r_{100}$",
+        zorder=0,
+    )
     ax.axvline(1e-2, color=COLORS["ink"], lw=1.0, ls="--")
     ax.axhline(0.6, color=COLORS["ink"], lw=1.0, ls=":")
+    if not heldout_false_keeps.empty:
+        false_keep_x = heldout_false_keeps["probe_r50"].to_numpy(dtype=float)
+        false_keep_y = heldout_false_keeps["probe_r100_over_r50"].to_numpy(dtype=float)
+        jitter = np.linspace(-0.18, 0.18, len(false_keep_x))
+        y_offsets = np.linspace(0.00, 0.055, len(false_keep_y))
+        false_keep_x_plot = false_keep_x * np.exp(jitter)
+        false_keep_y_plot = np.clip(false_keep_y + y_offsets, 0.012, 1.04)
+        ax.scatter(
+            false_keep_x_plot,
+            false_keep_y_plot,
+            s=130,
+            marker="X",
+            facecolor="none",
+            edgecolor=COLORS["red"],
+            linewidth=1.8,
+            label="held-out false keeps (n=4; jittered)",
+            zorder=5,
+        )
+        for idx, (xv, yv) in enumerate(zip(false_keep_x_plot, false_keep_y_plot), start=1):
+            ax.text(
+                xv * 1.10,
+                yv + 0.018,
+                str(idx),
+                color=COLORS["red"],
+                fontsize=7,
+                fontweight="bold",
+                ha="left",
+                va="bottom",
+                zorder=6,
+            )
+        ax.text(
+            1.1e-5,
+            0.17,
+            "false keeps\njittered",
+            color=COLORS["red"],
+            fontsize=7,
+            ha="left",
+            va="center",
+        )
     ax.text(1.08e-2, 0.08, "$r_{50}=10^{-2}$", rotation=90, va="bottom", fontsize=8)
     ax.text(1.5e-4, 0.63, "$r_{100}/r_{50}=0.6$", va="bottom", fontsize=8)
     ax.set_xscale("log")
-    ax.set_xlim(8e-5, 0.8)
+    ax.set_xlim(x_min, 0.8)
     ax.set_ylim(0, 1.08)
     ax.set_xlabel("$r_{50}$ after baseline probe")
     ax.set_ylabel("$r_{100}/r_{50}$ plateau ratio")
     ax.set_title("Residual-probe decision map")
-    ax.legend(frameon=False, loc="lower right", ncol=1)
+    handles, labels_seen = ax.get_legend_handles_labels()
+    dedup: dict[str, object] = {}
+    for handle, label in zip(handles, labels_seen):
+        dedup.setdefault(label, handle)
+    ax.legend(
+        dedup.values(),
+        dedup.keys(),
+        frameon=False,
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0.0,
+    )
     fig.tight_layout()
     fig.savefig(OUT / "fig3_residual_probe_phase_map.png", bbox_inches="tight")
     fig.savefig(OUT / "fig3_residual_probe_phase_map.pdf", bbox_inches="tight")
@@ -469,7 +532,7 @@ def _plot_history(ax, df: pd.DataFrame, title: str) -> None:
             group["iter"],
             group["rel_residual"],
             color=colors.get(rho, COLORS["gray"]),
-            lw=1.6,
+            lw=2.0,
             label=labels.get(rho, f"{rho:g}"),
         )
     ax.axhline(1e-6, color=COLORS["ink"], lw=1.0, ls="--", alpha=0.75)
@@ -478,7 +541,7 @@ def _plot_history(ax, df: pd.DataFrame, title: str) -> None:
     ax.set_xlim(left=0)
     ax.set_title(title)
     ax.set_xlabel("FGMRES iteration")
-    ax.grid(axis="y", which="both", alpha=0.18)
+    ax.grid(axis="y", which="both", alpha=0.12)
 
 
 def make_rescue_histories() -> None:
@@ -490,7 +553,7 @@ def make_rescue_histories() -> None:
     b500 = pd.read_csv(
         STRICT_OPTIMIZED_BRIDGE_RESULTS / "density_detector_history.csv"
     )
-    fig, axes = plt.subplots(1, 3, figsize=(9.4, 3.2), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(10.4, 3.8), sharey=True)
     cases = [
         (
             bridge[bridge["solid_probability"].astype(float) == 0.10],
@@ -505,9 +568,17 @@ def make_rescue_histories() -> None:
     for ax, (df, title) in zip(axes, cases):
         _plot_history(ax, df, title)
     axes[0].set_ylabel("relative residual")
-    axes[-1].legend(frameon=False, loc="upper right")
+    handles, labels_seen = axes[-1].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels_seen,
+        frameon=False,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=3,
+    )
     fig.suptitle("Baseline failure and ladder rescue histories", y=1.04)
-    fig.tight_layout()
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
     fig.savefig(OUT / "fig4_failure_rescue_histories.png", bbox_inches="tight")
     fig.savefig(OUT / "fig4_failure_rescue_histories.pdf", bbox_inches="tight")
     plt.close(fig)
@@ -550,6 +621,18 @@ def make_direct_admissibility_atlas() -> None:
     ax.set_xlabel("seed")
     ax.set_ylabel("solid probability")
     ax.set_title("Direct critical floor")
+    for iy, prob in enumerate(probs):
+        for ix, seed in enumerate(seeds):
+            value = heat.loc[prob, seed]
+            ax.text(
+                ix,
+                iy,
+                f"{int(value)}",
+                ha="center",
+                va="center",
+                fontsize=7,
+                color="white" if value > -8.5 else COLORS["ink"],
+            )
     cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     cbar.set_label("$\\log_{10}(\\rho_{\\min}^{crit})$")
     ax.text(-0.18, 1.08, "a", transform=ax.transAxes, fontsize=13, fontweight="bold")
@@ -827,6 +910,20 @@ def make_policy_overhead() -> None:
             va="top",
             fontsize=8,
         )
+    severe = cases[failed > 0].copy()
+    for idx, row in severe.iterrows():
+        total = float(row["selected_solve_iters"]) + float(row["probe_iters"]) + float(row["failed_ladder_iters"])
+        label = str(row["case_label"]).replace("\n", " ")
+        ax.text(
+            idx,
+            total + ymax * 0.025,
+            label,
+            ha="center",
+            va="bottom",
+            fontsize=7.2,
+            rotation=28,
+            color=COLORS["red"],
+        )
     fig.tight_layout()
     fig.savefig(OUT / "fig9_policy_overhead.pdf", bbox_inches="tight")
     fig.savefig(OUT / "fig9_policy_overhead.png", bbox_inches="tight")
@@ -839,6 +936,9 @@ def make_fixed_floor_controls() -> None:
     )
     sensitivity = pd.read_csv(
         REVIEW_SUMMARY_RESULTS / "sensitivity_perturbation_summary.csv"
+    )
+    sensitivity_cases = pd.read_csv(
+        REVIEW_SUMMARY_RESULTS / "sensitivity_perturbation_combined.csv"
     )
     controls = controls[controls["rho_min"].astype(float) > 1e-11].copy()
     controls["rho_min"] = controls["rho_min"].astype(float)
@@ -877,43 +977,62 @@ def make_fixed_floor_controls() -> None:
     ax.set_xticklabels([_reader_case_label(c) for c in case_order], fontsize=8)
     ax.set_ylabel("absolute compliance change (%)")
     ax.set_title("Compliance perturbation in fixed-floor controls")
+    ax.set_yscale("log")
+    ax.set_ylim(0.006, 35.0)
+    ax.set_yticks([1e-2, 1e-1, 1.0, 10.0])
+    ax.set_yticklabels(["0.01", "0.1", "1", "10"])
     ax.legend(frameon=False, title="$\\rho_{\\min}$")
 
     ax = axes[1]
     sensitivity["rho_min"] = sensitivity["rho_min"].astype(float)
     sensitivity = sensitivity.sort_values("rho_min")
-    x = np.arange(len(sensitivity))
-    ax.bar(
-        x,
-        sensitivity["mean_rel_dc_l2_solid"],
-        width=0.48,
-        color=[colors.get(float(r), COLORS["gray"]) for r in sensitivity["rho_min"]],
-        label="mean",
+    sensitivity_cases["rho_min"] = sensitivity_cases["rho_min"].astype(float)
+    sensitivity_cases = sensitivity_cases[sensitivity_cases["rho_min"] > 1e-11].copy()
+    distributions = [
+        sensitivity_cases[np.isclose(sensitivity_cases["rho_min"], floor)]["rel_dc_l2_solid"].astype(float).to_numpy()
+        for floor in [1e-3, 1e-2]
+    ]
+    parts = ax.boxplot(
+        distributions,
+        widths=0.48,
+        patch_artist=True,
+        showfliers=False,
+        medianprops={"color": COLORS["ink"], "linewidth": 1.2},
+        boxprops={"linewidth": 1.0, "color": COLORS["ink"]},
+        whiskerprops={"color": COLORS["ink"], "linewidth": 0.9},
+        capprops={"color": COLORS["ink"], "linewidth": 0.9},
     )
-    ax.scatter(
-        x,
-        sensitivity["max_rel_dc_l2_solid"],
-        color=COLORS["ink"],
-        marker="D",
-        s=32,
-        label="max",
-        zorder=3,
-    )
-    for xpos, row in enumerate(sensitivity.itertuples(index=False)):
+    for patch, floor in zip(parts["boxes"], [1e-3, 1e-2]):
+        patch.set_facecolor(colors[floor])
+        patch.set_alpha(0.78)
+    rng = np.random.default_rng(7)
+    for xpos, values, floor in zip([1, 2], distributions, [1e-3, 1e-2]):
+        jitter = rng.uniform(-0.08, 0.08, size=len(values))
+        ax.scatter(
+            np.full(len(values), xpos) + jitter,
+            values,
+            s=14,
+            color=colors[floor],
+            edgecolor="white",
+            linewidth=0.35,
+            alpha=0.68,
+            zorder=3,
+        )
+    for xpos, row in zip([1, 2], sensitivity.itertuples(index=False)):
         ax.text(
             xpos,
-            float(row.mean_rel_dc_l2_solid) + 0.03,
-            f"{float(row.mean_rel_dc_l2_solid):.3f}",
+            1.06,
+            f"mean {float(row.mean_rel_dc_l2_solid):.3f}\nmax {float(row.max_rel_dc_l2_solid):.3f}",
             ha="center",
-            va="bottom",
+            va="top",
             fontsize=8,
+            bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.82, "pad": 0.5},
         )
-    ax.set_xticks(x)
-    ax.set_xticklabels([_floor_label(v) for v in sensitivity["rho_min"]])
+    ax.set_xticks([1, 2])
+    ax.set_xticklabels([_floor_label(1e-3), _floor_label(1e-2)])
     ax.set_ylabel("relative $\\ell_2$ shift")
     ax.set_title("Solid-element sensitivity perturbation on 24 true-keep states")
-    ax.set_ylim(0.0, max(1.08, float(sensitivity["max_rel_dc_l2_solid"].max()) + 0.08))
-    ax.legend(frameon=False, loc="upper left")
+    ax.set_ylim(0.0, 1.10)
     fig.tight_layout()
     fig.savefig(OUT / "fig10_fixed_floor_controls.pdf", bbox_inches="tight")
     fig.savefig(OUT / "fig10_fixed_floor_controls.png", bbox_inches="tight")
@@ -1008,12 +1127,10 @@ def make_review_extension_evidence() -> None:
     mechanism = pd.read_csv(REVIEW_SUMMARY_RESULTS / "mechanism_ablation_summary.csv")
     simp = pd.read_csv(REVIEW_SUMMARY_RESULTS / "simp_exponent_policy_sensitivity_summary.csv")
     floors = pd.read_csv(REVIEW_SUMMARY_RESULTS / "original_floor_policy_sensitivity_summary.csv")
-    guarded_iters = pd.read_csv(GUARDED_ADAPTIVE_TRAJECTORY_RESULTS / "trajectory_iters.csv")
-    guarded_summary = pd.read_csv(GUARDED_ADAPTIVE_TRAJECTORY_RESULTS / "trajectory_summary.csv")
 
-    fig, axes = plt.subplots(2, 2, figsize=(9.8, 7.2))
+    fig, axes = plt.subplots(1, 3, figsize=(10.6, 3.7))
 
-    ax = axes[0, 0]
+    ax = axes[0]
     order = [
         "canonical",
         "levels3",
@@ -1029,8 +1146,8 @@ def make_review_extension_evidence() -> None:
     failures = mechanism["failures"].astype(float).to_numpy()
     labels = [
         "reported stack",
-        "3 levels",
-        "Jacobi",
+        "3-level hierarchy",
+        "Jacobi smoother",
         "W-cycle",
         r"tol $10^{-5}$",
         r"tol $10^{-7}$",
@@ -1047,67 +1164,19 @@ def make_review_extension_evidence() -> None:
         ax.text(6.12, yi, f"{int(p)}/6", ha="right", va="center", fontsize=8)
     ax.invert_yaxis()
 
-    ax = axes[0, 1]
+    ax = axes[1]
     simp = simp.copy()
     simp["penal"] = simp["penal"].map(lambda v: f"p={float(v):g}")
     _plot_floor_stack(ax, simp, "penal", "Tuned SIMP-exponent sensitivity")
 
-    ax = axes[1, 0]
+    ax = axes[2]
     floors = floors.copy()
     floors["baseline_rho_min"] = floors["baseline_rho_min"].map(
         lambda v: {"1e-12": r"$10^{-12}$", "1e-09": r"$10^{-9}$", "1e-08": r"$10^{-8}$", "1e-06": r"$10^{-6}$"}.get(str(v), str(v))
     )
     _plot_floor_stack(ax, floors, "baseline_rho_min", "Tuned original-floor sensitivity")
 
-    ax = axes[1, 1]
-    preset_labels = {
-        "cantilever_gpu_medium": "cantilever",
-        "bridge_gpu_medium": "bridge",
-    }
-    colors = {"cantilever_gpu_medium": COLORS["blue"], "bridge_gpu_medium": COLORS["orange"]}
-    floor_to_level = {1e-12: 0, 1e-3: 1, 1e-2: 2}
-    for preset in ["cantilever_gpu_medium", "bridge_gpu_medium"]:
-        sub = guarded_iters[guarded_iters["preset"] == preset].copy()
-        sub["floor_level"] = sub["selected_rho_min"].astype(float).map(floor_to_level)
-        ax.step(
-            sub["iteration"].astype(int),
-            sub["floor_level"],
-            where="post",
-            color=colors[preset],
-            linewidth=2.2,
-            label=preset_labels[preset],
-        )
-        row = guarded_summary[guarded_summary["preset"] == preset].iloc[0]
-        last_iter = int(sub["iteration"].max())
-        last_level = int(sub["floor_level"].iloc[-1])
-        ax.text(
-            last_iter + 0.6,
-            last_level + (0.04 if preset == "cantilever_gpu_medium" else -0.12),
-            f"C={float(row['final_compliance']):.3f}",
-            color=colors[preset],
-            fontsize=8,
-            ha="left",
-            va="center",
-        )
-    ax.set_xlim(1, 44)
-    ax.set_ylim(-0.25, 2.25)
-    ax.set_yticks([0, 1, 2])
-    ax.set_yticklabels([r"$10^{-12}$", r"$10^{-3}$", r"$10^{-2}$"])
-    ax.set_xlabel("optimization iteration")
-    ax.set_ylabel("selected floor")
-    ax.set_title("Guarded adaptive in-loop trajectories")
-    ax.legend(frameon=False, title="medium case", loc="upper left")
-    ax.text(
-        0.98,
-        0.94,
-        r"2/2 complete; max true residual $\leq 10^{-6}$",
-        transform=ax.transAxes,
-        ha="right",
-        va="top",
-        fontsize=8,
-    )
-
-    for label, ax in zip(["a", "b", "c", "d"], axes.flat):
+    for label, ax in zip(["a", "b", "c"], axes.flat):
         ax.text(
             -0.12,
             1.07,
@@ -1119,7 +1188,7 @@ def make_review_extension_evidence() -> None:
             va="top",
         )
 
-    fig.subplots_adjust(left=0.10, right=0.985, bottom=0.10, top=0.94, hspace=0.62, wspace=0.30)
+    fig.subplots_adjust(left=0.08, right=0.99, bottom=0.21, top=0.88, wspace=0.42)
     fig.savefig(OUT / "fig11_review_extension_evidence.pdf", bbox_inches="tight")
     fig.savefig(OUT / "fig11_review_extension_evidence.png", bbox_inches="tight")
     plt.close(fig)
@@ -1168,6 +1237,7 @@ def _render_marching_surface_image(
     color: str,
     camera_multipliers: tuple[float, float, float] = (1.75, -1.90, 1.20),
     camera_zoom: float = 1.03,
+    parallel_scale_factor: float = 0.42,
     window_size: tuple[int, int] = (1000, 620),
 ) -> np.ndarray:
     if pv is None:
@@ -1186,6 +1256,10 @@ def _render_marching_surface_image(
     mesh = pv.PolyData(verts, faces_pv).clean()
     plotter = pv.Plotter(off_screen=True, window_size=window_size)
     plotter.set_background("white")
+    try:
+        plotter.enable_anti_aliasing("ssaa")
+    except Exception:
+        plotter.enable_anti_aliasing()
     plotter.add_mesh(
         mesh,
         color=color,
@@ -1204,6 +1278,8 @@ def _render_marching_surface_image(
         (0.0, 0.0, 1.0),
     )
     plotter.camera_position = camera
+    plotter.camera.parallel_projection = True
+    plotter.camera.parallel_scale = parallel_scale_factor * max(density.shape)
     plotter.camera.zoom(camera_zoom)
     image = plotter.screenshot(return_img=True)
     plotter.clear()
@@ -1266,6 +1342,9 @@ def _render_marching_surface_matplotlib_image(
 
 
 def make_3d_topology_gallery() -> None:
+    # The manifest records matching SHA256 hashes for rho_best.npy and rho_final.npy
+    # for these fixed optimized-density states. The gallery uses rho_final.npy as the
+    # canonical stored final-state path while representing the same density arrays.
     cases = [
         (
             "C64_MF",
@@ -1275,6 +1354,7 @@ def make_3d_topology_gallery() -> None:
             COLORS["teal"],
             (1.75, -1.90, 1.20),
             1.03,
+            0.42,
             (20.0, -58.0),
         ),
         (
@@ -1285,6 +1365,7 @@ def make_3d_topology_gallery() -> None:
             COLORS["blue"],
             (1.75, -1.90, 1.20),
             1.03,
+            0.42,
             (20.0, -58.0),
         ),
         (
@@ -1293,9 +1374,10 @@ def make_3d_topology_gallery() -> None:
             (80, 160, 40),
             "512k-element bracket\nkept $10^{-12}$",
             COLORS["teal"],
-            (1.75, -1.90, 1.20),
-            0.62,
-            (20.0, -58.0),
+            (2.30, -0.55, 1.15),
+            0.84,
+            0.43,
+            (20.0, -20.0),
         ),
         (
             "B500_MF",
@@ -1304,15 +1386,26 @@ def make_3d_topology_gallery() -> None:
             "514.5k-element bridge\nraised to $10^{-2}$",
             COLORS["orange"],
             (1.45, -1.45, 3.20),
-            0.56,
+            0.76,
+            0.42,
             (24.0, -45.0),
         ),
     ]
 
-    fig, axes_grid = plt.subplots(2, 2, figsize=(8.6, 6.4))
+    fig, axes_grid = plt.subplots(2, 2, figsize=(8.6, 6.2))
     axes = list(axes_grid.flat)
 
-    for i, (name, path, shape, title, color, camera_multipliers, camera_zoom, fallback_view) in enumerate(cases, start=1):
+    for i, (
+        name,
+        path,
+        shape,
+        title,
+        color,
+        camera_multipliers,
+        camera_zoom,
+        parallel_scale_factor,
+        fallback_view,
+    ) in enumerate(cases, start=1):
         ax = axes[i - 1]
         density = np.load(path).reshape(shape)
         if pv is None:
@@ -1323,8 +1416,9 @@ def make_3d_topology_gallery() -> None:
                 color,
                 camera_multipliers=camera_multipliers,
                 camera_zoom=camera_zoom,
+                parallel_scale_factor=parallel_scale_factor,
             )
-        ax.imshow(_pad_image(image))
+        ax.imshow(_pad_image(image, y_frac=0.095, x_frac=0.04))
         ax.set_axis_off()
         ax.text(
             0.02,
@@ -1345,7 +1439,17 @@ def make_3d_topology_gallery() -> None:
             va="top",
             fontsize=10,
         )
-    fig.subplots_adjust(left=0.02, right=0.99, bottom=0.04, top=0.97, wspace=0.04, hspace=0.22)
+        ax.text(
+            0.50,
+            0.055,
+            "density $\\geq 0.5$ isosurface\nBC/load: Appendix A",
+            transform=ax.transAxes,
+            ha="center",
+            va="bottom",
+            fontsize=7,
+            color=COLORS["gray"],
+        )
+    fig.subplots_adjust(left=0.02, right=0.99, bottom=0.04, top=0.97, wspace=0.035, hspace=0.16)
     fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.png", facecolor="white")
     fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.pdf", facecolor="white")
     plt.close(fig)
@@ -1446,3 +1550,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

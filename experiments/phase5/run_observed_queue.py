@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PYTHON = Path(r"C:\Users\YSL0\anaconda3\envs\PY\python.exe")
+DEFAULT_PYTHON = Path(os.environ.get("PYTHON", sys.executable))
 
 
 @dataclass

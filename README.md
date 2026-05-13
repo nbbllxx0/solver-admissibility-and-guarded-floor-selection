@@ -3,7 +3,7 @@
 Code-only release for the experiment suite accompanying:
 
 > Yang, S., Wang, J., and Wang, Y. (2026).  
-> *Solver-Admissibility Testing of SIMP Density Floors in Matrix-Free GMG-FGMRES.*
+> *Guarded Density-Floor Selection for a Matrix-Free GMG-FGMRES SIMP Solver.*
 
 This repository is intentionally a code release. It contains the solver source,
 experiment drivers, analysis scripts, plotting scripts, environment file, and
@@ -26,6 +26,30 @@ This release is not a frozen reviewer bundle. It is the public code base for
 rerunning or extending the experiments. Exact reported numeric tables require
 rerunning the scripts on compatible hardware or combining this code release with
 the separate artifact/result bundle.
+
+## Relation to Companion Preprints
+
+This release belongs to the solver-admissibility paper above. It reuses the
+same matrix-free finite-element implementation lineage as the companion fused
+operator preprint:
+
+- Yang, S., Wang, J., and Wang, Y. (2026). *Matrix-Free 3D SIMP Topology
+  Optimization with Fused Gather-GEMM-Scatter Kernels.*
+  <https://arxiv.org/abs/2604.18020>
+
+It also reuses the single-GPU Galerkin GMG hierarchy and failure-mode screen
+from the companion solver preprint:
+
+- Yang, S., Wang, J., and Wang, Y. (2026). *A Matrix-Free Galerkin Multigrid
+  Solver and Failure-Mode Screen for Single-GPU 3D SIMP Linear Systems.*
+  <https://arxiv.org/abs/2604.26441>
+
+The boundary is intentionally narrow: this release is not a new fused-kernel
+throughput benchmark, not a new Galerkin hierarchy design, and not a standalone
+GMG pass-rate screen. It studies whether a nominally positive SIMP density floor
+is admissible for that solver stack at the requested residual tolerance, and it
+implements the guarded keep-or-escalate floor policy evaluated in the
+solver-admissibility paper.
 
 ## Code-Only Boundary
 
@@ -313,8 +337,8 @@ python experiments/phase5/run_observed_queue.py \
 
 Scientific purpose: distinguish frozen-state solver admissibility from repeated
 floor choices during optimization. The paper treats the guarded adaptive
-trajectory evidence as a two-case addendum, not a broad trajectory-invariance
-claim.
+trajectory evidence as a two-case addendum, not a broad optimization-path
+preservation claim.
 
 ### 10. Summary Tables
 
@@ -338,9 +362,9 @@ separate fixed-density input states.
 python experiments/phase5/make_paper5_journal_figures.py
 ```
 
-By default, paper-native figure PDFs are written to the manuscript-oriented
-output path used in the author workspace. For a code-only clone, either create
-that output path locally or edit the script/output root before rendering.
+By default, paper-native figure PDFs are written to the clone-local
+`figures/generated/` directory. Set `PAPER5_FIGURE_OUT` to redirect the output
+elsewhere before rendering.
 
 If PyVista off-screen rendering is unavailable, the script contains a
 Matplotlib/scikit-image marching-cubes fallback for the 3D topology gallery.
@@ -375,7 +399,7 @@ Matplotlib/scikit-image marching-cubes fallback for the 3D topology gallery.
 - Optimized-density transfer uses stored fixed input states. In this code-only
   release those arrays are absent by design, so exact transfer/gallery
   reproduction requires the separate artifact bundle.
-- Broad guarded adaptive optimization-trajectory invariance is outside the
+- Broad guarded adaptive optimization-path preservation is outside the
   code release's default claim boundary. The provided trajectory scripts support
   extension studies.
 

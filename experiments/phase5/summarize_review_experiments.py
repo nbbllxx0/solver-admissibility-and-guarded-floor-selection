@@ -594,6 +594,7 @@ def _summarize_optional_guarded_adaptive_trajectories() -> dict | None:
 
     summary = _read_csv(summary_path)
     iters = _read_csv(iter_path)
+    summary = _reconcile_trajectory_summary_with_iters(summary, iters)
     summary.to_csv(OUT_DIR / "guarded_adaptive_trajectory_summary.csv", index=False)
     iters.to_csv(OUT_DIR / "guarded_adaptive_trajectory_iters.csv", index=False)
 
@@ -612,6 +613,44 @@ def _summarize_optional_guarded_adaptive_trajectories() -> dict | None:
         "failures": int((~ok).sum()),
         "notes": "; ".join(notes),
     }
+
+
+def _reconcile_trajectory_summary_with_iters(summary: pd.DataFrame, iters: pd.DataFrame) -> pd.DataFrame:
+    """Prefer per-iteration logs for final-iterate metrics in trajectory summaries."""
+    required = {"run_id", "iteration"}
+    if not required.issubset(iters.columns) or "run_id" not in summary.columns:
+        return summary
+
+    out = summary.copy()
+    numeric_iters = iters.copy()
+    numeric_iters["iteration"] = pd.to_numeric(numeric_iters["iteration"], errors="coerce")
+    metric_pairs = {
+        "final_compliance": "compliance",
+        "final_grayness": "grayness",
+        "final_volume": "volume",
+        "final_change": "change",
+        "final_solver_iters": "cg_iters",
+    }
+
+    for idx, row in out.iterrows():
+        run_id = row["run_id"]
+        run_iters = numeric_iters[numeric_iters["run_id"] == run_id].sort_values("iteration")
+        if run_iters.empty:
+            continue
+
+        final_row = run_iters.iloc[-1]
+        for summary_col, iter_col in metric_pairs.items():
+            if summary_col in out.columns and iter_col in final_row.index:
+                out.at[idx, summary_col] = final_row[iter_col]
+
+        if "best_iteration" in out.columns and "best_grayness" in out.columns and "grayness" in run_iters.columns:
+            best_iteration = pd.to_numeric(pd.Series([row.get("best_iteration")]), errors="coerce").iloc[0]
+            if pd.notna(best_iteration):
+                best_row = run_iters[run_iters["iteration"] == best_iteration]
+                if not best_row.empty:
+                    out.at[idx, "best_grayness"] = best_row.iloc[-1]["grayness"]
+
+    return out
 
 
 def _optimized_case_details(optimized: pd.DataFrame) -> pd.DataFrame:
@@ -847,13 +886,13 @@ def main() -> None:
     for optional_summary in [
         _summarize_optional_prospective_sweep(
             root=SIMP_EXPONENT_SENSITIVITY_DIR,
-            block="simp_exponent_sensitivity",
+            block="simp_exponent_fallback_only_sensitivity",
             group_cols=["penal"],
             out_prefix="simp_exponent_sensitivity",
         ),
         _summarize_optional_prospective_sweep(
             root=ORIGINAL_FLOOR_SENSITIVITY_DIR,
-            block="original_floor_sensitivity",
+            block="original_floor_fallback_only_sensitivity",
             group_cols=["baseline_rho_min"],
             out_prefix="original_floor_sensitivity",
         ),
@@ -878,6 +917,14 @@ def main() -> None:
     ]:
         if optional_summary is None:
             continue
+        notes = optional_summary["notes"]
+        if optional_summary["block"].endswith("_fallback_only_sensitivity"):
+            notes = (
+                "Fallback-only/non-policy sweep; not used for the tuned guarded-policy table. "
+                + notes
+            )
+        elif optional_summary["block"].endswith("_policy_sensitivity"):
+            notes = "Tuned guarded-policy sweep used for the manuscript sensitivity table. " + notes
         rows.append(
             {
                 "block": optional_summary["block"],
@@ -893,7 +940,7 @@ def main() -> None:
                 "false_keep_rate_predicted_keep": _safe_ratio(
                     optional_summary["false_keeps"], optional_summary["predicted_keeps"]
                 ),
-                "notes": optional_summary["notes"],
+                "notes": notes,
             }
         )
 

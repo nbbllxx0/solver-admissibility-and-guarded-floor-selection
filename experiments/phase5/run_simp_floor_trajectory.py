@@ -358,6 +358,11 @@ def _run_case(
 
     params_log = result.get("params_log", [])
     final_log = params_log[-1] if params_log else {}
+    best_iteration = int(result.get("best_iteration", 0) or 0)
+    best_log = next(
+        (entry for entry in params_log if int(entry.get("iter", -1) or -1) == best_iteration),
+        {},
+    )
     summary = {
         "run_id": run_id,
         "preset": preset,
@@ -370,11 +375,11 @@ def _run_case(
         "iters_requested": args.iters,
         "iters_completed": int(final_log.get("iter", 0)),
         "wall_time_s": wall_s,
-        "final_compliance": float(result.get("final_compliance", float("nan"))),
+        "final_compliance": float(final_log.get("compliance", result.get("final_compliance", float("nan")))),
         "best_compliance": float(result.get("best_compliance", float("nan"))),
-        "best_iteration": int(result.get("best_iteration", 0) or 0),
-        "final_grayness": float(result.get("final_grayness", float("nan"))),
-        "best_grayness": float(result.get("best_grayness", float("nan"))),
+        "best_iteration": best_iteration,
+        "final_grayness": float(final_log.get("grayness", result.get("final_grayness", float("nan")))),
+        "best_grayness": float(best_log.get("grayness", result.get("best_grayness", float("nan")))),
         "best_is_valid": bool(result.get("best_is_valid", False)),
         "fem_calls": int(result.get("fem_calls", 0) or 0),
         "surrogate_calls": int(result.get("surrogate_calls", 0) or 0),

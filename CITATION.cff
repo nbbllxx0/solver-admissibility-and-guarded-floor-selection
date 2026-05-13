@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite the accompanying solver-admissibility paper."
-title: "Code for Solver-Admissibility Testing of SIMP Density Floors in Matrix-Free GMG-FGMRES"
+title: "Code for Guarded Density-Floor Selection for a Matrix-Free GMG-FGMRES SIMP Solver"
 type: software
 authors:
   - family-names: Yang
@@ -14,7 +14,7 @@ authors:
     affiliation: "Santa Clara University"
 license: BSD-3-Clause
 version: "1.0.0"
-date-released: "2026-04-28"
+date-released: "2026-05-02"
 keywords:
   - topology optimization
   - SIMP
@@ -26,7 +26,7 @@ keywords:
   - GPU
 preferred-citation:
   type: article
-  title: "Solver-Admissibility Testing of SIMP Density Floors in Matrix-Free GMG-FGMRES"
+  title: "Guarded Density-Floor Selection for a Matrix-Free GMG-FGMRES SIMP Solver"
   authors:
     - family-names: Yang
       given-names: Shaoliang

@@ -264,8 +264,8 @@ STANDARD_TAIL = {
 # TailOnlyController — null baseline for ablation
 #
 # Does nothing during the main loop (returns None every iteration).
-# Then runs the standard tail.  This answers the reviewer question:
-# "how much does ANY exploration contribute vs tail alone?"
+# Then runs the standard tail to isolate how much exploration contributes
+# beyond post-processing alone.
 #
 # If tail_only ≈ llm_agent+tail, the LLM's exploration contributed nothing.
 # If llm_agent+tail << tail_only, the LLM's exploration is the real contribution.
