@@ -1,3 +1,9 @@
+# Platform A: the environment used for every result reported in the paper
+# (NVIDIA RTX 4090, SM 8.9, CUDA 12.x).
+#
+# On Blackwell GPUs (SM 12.0, e.g. RTX 5090) the cupy-cuda12x wheel raises
+# CUDA_ERROR_NO_BINARY_FOR_GPU. Use environment-blackwell.yml instead, and see
+# README section 3 for the two required runtime adjustments.
 name: paper5-solver-admissibility
 channels:
   - conda-forge

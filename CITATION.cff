@@ -1,7 +1,15 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite the accompanying solver-admissibility paper."
-title: "Code for Guarded Density-Floor Selection for a Matrix-Free GMG-FGMRES SIMP Solver"
+message: "If you use this software, please cite the accompanying paper."
+title: "Solver admissibility and guarded floor selection: code release"
+abstract: >-
+  Matrix-free GPU finite-element stack, Galerkin geometric-multigrid hierarchy,
+  and guarded SIMP density-floor selection policy for three-dimensional topology
+  optimization, together with every experiment reported in the accompanying
+  paper: held-out keep/raise validation, acceptance-guard audits, fixed-floor
+  operator-perturbation controls, threshold and stack sensitivity sweeps, and
+  in-loop optimization trajectories.
 type: software
+repository-code: "https://github.com/nbbllxx0/solver-admissibility-and-guarded-floor-selection"
 authors:
   - family-names: Yang
     given-names: Shaoliang
@@ -13,20 +21,23 @@ authors:
     given-names: Yunsheng
     affiliation: "Santa Clara University"
 license: BSD-3-Clause
-version: "1.0.0"
-date-released: "2026-05-02"
+version: "2.0.0"
+date-released: "2026-07-27"
 keywords:
   - topology optimization
   - SIMP
   - solver admissibility
   - density floor
+  - residual acceptance
   - geometric multigrid
   - matrix-free finite elements
   - FGMRES
   - GPU
 preferred-citation:
   type: article
-  title: "Guarded Density-Floor Selection for a Matrix-Free GMG-FGMRES SIMP Solver"
+  title: >-
+    When a positive SIMP density floor is not enough: solver admissibility and
+    guarded floor selection in matrix-free 3D topology optimization
   authors:
     - family-names: Yang
       given-names: Shaoliang
@@ -35,4 +46,4 @@ preferred-citation:
     - family-names: Wang
       given-names: Yunsheng
   year: 2026
-  notes: "Update journal, DOI, and URL fields after publication."
+  notes: "Update journal, volume, DOI, and URL fields after publication."

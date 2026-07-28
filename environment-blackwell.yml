@@ -1,0 +1,26 @@
+# Platform B: Blackwell-class GPUs (SM 12.0, e.g. RTX 5090), CUDA 13.
+#
+# Used for the second-platform replication, the FP32 precision ablation, the
+# optimized-design perturbation study, and the million-element scale check.
+# Convergence decisions and iteration counts match Platform A; wall times do not
+# and are not comparable with the reported timings.
+#
+# Two runtime notes (README section 3):
+#   1. export CUPY_ACCELERATORS=""   # CuPy 14 CUB reductions fail to compile on CUDA 13
+#   2. the fused kernels select -std=c++17 automatically on CuPy >= 14
+name: paper5-solver-admissibility-blackwell
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - cupy-cuda13x==14.0.1
+      - numpy==2.2.6
+      - scipy==1.15.3
+      - matplotlib>=3.9
+      - pandas==2.3.3
+      - pyvista>=0.46
+      - scikit-image>=0.24
+      - pyamg>=5.3
+      - pynvml>=12

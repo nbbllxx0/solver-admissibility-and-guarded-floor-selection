@@ -1,426 +1,471 @@
-# Solver-Admissibility Code Release
+# Solver admissibility and guarded floor selection
 
-Code-only release for the experiment suite accompanying:
+Code release for:
 
-> Yang, S., Wang, J., and Wang, Y. (2026).  
-> *Guarded Density-Floor Selection for a Matrix-Free GMG-FGMRES SIMP Solver.*
+> Yang, S., Wang, J., and Wang, Y. (2026).
+> *When a positive SIMP density floor is not enough: solver admissibility and guarded
+> floor selection in matrix-free 3D topology optimization.*
 
-This repository is intentionally a code release. It contains the solver source,
-experiment drivers, analysis scripts, plotting scripts, environment file, and
-configuration manifests needed to rerun the experiments. It does not contain the
-manuscript source, PDFs, generated figures, result CSVs, logs, caches, or large
-stored density arrays. Fresh runs recreate those artifacts under local
-`experiments/phase5/results/` and figure-output directories.
+**The finding in one paragraph.** In ersatz-material SIMP, void elements are kept weakly
+stiff by a positive density floor. A positive floor is usually treated as sufficient to
+make the constrained stiffness operator solvable. It is not: for a given matrix-free
+geometric-multigrid FGMRES hierarchy, tolerance, and iteration budget, a mathematically
+positive floor can be *solver-inadmissible*. Worse, the failure is not always visible — on
+4 of 102 held-out states the outer Krylov iteration set its convergence flag while the
+recomputed true residual was up to 49.5× the requested tolerance, and inside an
+optimization loop the same failure produced a compliance history oscillating between 0.48
+and 4.50 with no error raised. This repository implements the solver stack, the guarded
+floor-selection policy that fixes it (probe → preserve/escalate rule → floor ladder →
+**recomputed-residual acceptance guard**), and every experiment reported in the paper.
 
-## Scope
+---
 
-The paper studies a solver-facing failure mode in density-based topology
-optimization: a positive SIMP density floor can still be inadmissible for a
-specific matrix-free geometric-multigrid FGMRES hierarchy and residual
-tolerance. The code here implements the tested matrix-free finite-element stack,
-the residual-probe floor policy, direct and GMG validation experiments, fixed
-floor controls, policy-cost accounting, mechanism ablations, sensitivity
-sweeps, and trajectory controls.
+## 1. What this repository is, and is not
 
-This release is not a frozen reviewer bundle. It is the public code base for
-rerunning or extending the experiments. Exact reported numeric tables require
-rerunning the scripts on compatible hardware or combining this code release with
-the separate artifact/result bundle.
+**Is:** the complete source for the matrix-free finite-element stack, the multigrid
+hierarchy, the floor policy, all experiment drivers, all analyzers, the summary builder,
+and the figure generators. Every number in the paper can be regenerated from this code
+plus a GPU.
 
-## Relation to Companion Preprints
+**Is not:** a results archive. Result CSVs, logs, figures, and the large stored density
+arrays are not tracked here — fresh runs recreate them under
+`experiments/phase5/results/`. Two things therefore cannot be reproduced from this
+repository alone:
 
-This release belongs to the solver-admissibility paper above. It reuses the
-same matrix-free finite-element implementation lineage as the companion fused
-operator preprint:
+| Needs | Why | Where to get it |
+| --- | --- | --- |
+| `experiments/paper2/runs/<case>/rho_final.npy` | The optimized-density transfer study and its figure use eight stored final SIMP density fields | Result/artifact bundle deposited with the paper |
+| Reported wall-time tables | Timings are hardware-specific single observed runs | Rerun locally; expect different absolute values |
 
-- Yang, S., Wang, J., and Wang, Y. (2026). *Matrix-Free 3D SIMP Topology
-  Optimization with Fused Gather-GEMM-Scatter Kernels.*
-  <https://arxiv.org/abs/2604.18020>
+Everything else — direct atlas, retrospective labels, the 102-state held-out suite, fixed
+floor controls, sensitivity perturbation, threshold and policy sweeps, mechanism
+ablations, and the optimization trajectories — is fully reproducible here.
 
-It also reuses the single-GPU Galerkin GMG hierarchy and failure-mode screen
-from the companion solver preprint:
+---
 
-- Yang, S., Wang, J., and Wang, Y. (2026). *A Matrix-Free Galerkin Multigrid
-  Solver and Failure-Mode Screen for Single-GPU 3D SIMP Linear Systems.*
-  <https://arxiv.org/abs/2604.26441>
-
-The boundary is intentionally narrow: this release is not a new fused-kernel
-throughput benchmark, not a new Galerkin hierarchy design, and not a standalone
-GMG pass-rate screen. It studies whether a nominally positive SIMP density floor
-is admissible for that solver stack at the requested residual tolerance, and it
-implements the guarded keep-or-escalate floor policy evaluated in the
-solver-admissibility paper.
-
-## Code-Only Boundary
-
-Included:
-
-- `src/gpu_fem/`: matrix-free finite-element, SIMP, boundary-condition, solver,
-  and GMG support code.
-- `experiments/phase5/`: experiment drivers, analyzers, plotting scripts,
-  summary builder, figure generator, and small experiment manifest CSVs.
-- `environment.yml`: pinned software environment used for the paper package.
-- `ci/smoke_check.py`: lightweight source compilation check.
-- `LICENSE`, `CITATION.cff`, and this README.
-
-Excluded by design:
-
-- manuscript `.tex`, `.pdf`, `.bbl`, and journal-submission files;
-- generated figures and rendered pages;
-- result CSV/JSON/NPY outputs under `experiments/phase5/results/`;
-- stored optimized-density input arrays under `experiments/paper2/runs/`;
-- runtime scratch folders, CuPy caches, logs, and local temporary outputs.
-
-For exact reproduction of the optimized-density transfer rows and the 3D
-gallery, provide the separate fixed-density artifact bundle at
-`experiments/paper2/runs/<case>/rho_best.npy` and
-`experiments/paper2/runs/<case>/rho_final.npy`, together with the associated
-`meta.json` and `iters.csv` files. Without those fixed input states, the random
-field, direct, GMG, policy, ablation, and trajectory experiments remain
-runnable, but optimized-density transfer and Figure 7 cannot be reproduced
-exactly.
-
-## Repository Layout
-
-| Path | Purpose |
-| --- | --- |
-| `src/gpu_fem/` | Solver implementation and reusable GPU-FEM utilities. |
-| `experiments/phase5/run_direct_floor_atlas.py` | Reduced assembled/direct floor sweeps. |
-| `experiments/phase5/validate_admissibility_detector.py` | Leave-one-seed direct detector validation. |
-| `experiments/phase5/validate_gmg_solver_floor_detector.py` | Retrospective GMG residual-probe rule check. |
-| `experiments/phase5/run_gmg_floor_detector_prospective.py` | Prospective random cases, held-out guarded cases, bridge transfer, and baseline/fallback policy variants. |
-| `experiments/phase5/run_gmg_floor_detector_density_field.py` | Optimized-density transfer on stored density fields. |
-| `experiments/phase5/run_gmg_fixed_floor_controls.py` | Fixed-floor compliance/timing controls. |
-| `experiments/phase5/analyze_gmg_sensitivity_perturbation.py` | True-keep sensitivity-vector perturbation under fixed raised floors. |
-| `experiments/phase5/analyze_gmg_threshold_sensitivity.py` | Residual-rule threshold sensitivity grid. |
-| `experiments/phase5/analyze_gmg_policy_overhead.py` | Probe, reuse, selected-solve, and failed-ladder iteration accounting. |
-| `experiments/phase5/run_observed_queue.py` | Serial runner for long observed experiment queues. |
-| `experiments/phase5/run_simp_floor_trajectory.py` | Fixed-floor and guarded adaptive in-loop trajectory jobs. |
-| `experiments/phase5/summarize_review_experiments.py` | Consolidates completed result directories into manuscript-ready summary CSVs. |
-| `experiments/phase5/make_paper5_journal_figures.py` | Regenerates paper-native figures from result summaries and density inputs. |
-| `experiments/phase5/fixed_floor_control_manifest.csv` | Small input manifest for fixed-floor controls. |
-| `experiments/phase5/review_required_experiments.csv` | Experiment queue/status plan used by the observed runner. |
-| `ci/smoke_check.py` | Syntax-level release check that does not require a GPU. |
-
-## Hardware Requirements
-
-The full experiment suite was run on a single NVIDIA GeForce RTX 4090. Smaller
-reduced/direct experiments are less demanding, but the GMG and trajectory
-experiments use CUDA/CuPy paths and should be run on an NVIDIA GPU with a recent
-driver and enough memory for the target problem size.
-
-Practical guidance:
-
-- Use a 24 GiB GPU for the largest reported cases.
-- Start with reduced/direct and small prospective GMG cases before launching
-  held-out or trajectory queues.
-- Keep runtime scratch, CuPy cache, and result output on a local disk with
-  enough free space for generated CSV/JSON/NPY outputs.
-
-## Software Setup
-
-Create the environment:
+## 2. Quick start
 
 ```bash
 conda env create -f environment.yml
 conda activate paper5-solver-admissibility
+python ci/smoke_check.py                     # source-level check, no GPU needed
 ```
 
-If you are using an existing environment, the key package versions are pinned in
-`environment.yml`: Python 3.10, CuPy 13.6, NumPy 2.2, SciPy 1.15, Matplotlib
-3.10, pandas 2.3, scikit-image 0.25, PyVista 0.46, and pyamg 5.3.
-
-Run the source-level smoke check:
+First GPU check (~1 minute, 64k elements, no stored inputs required):
 
 ```bash
-python ci/smoke_check.py
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset cantilever_gpu_medium --seeds 43 --probabilities 0.35 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+  --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
+  --out-dir experiments/phase5/results/quickcheck
 ```
 
-This only verifies that release Python files compile. It intentionally does not
-import CUDA modules or run GPU solves.
+Expected: one row with `trigger=keep`, `recommended_rho_min=1e-12`,
+`solve_converged=1`, and 30 FGMRES iterations. The probe feature `r50` should be about
+`5.3e-07`. If instead you see `trigger=high_r50`, the environment is fine but the
+hierarchy is behaving differently from the reported stack — check §3.
 
-## Output Convention
+---
 
-Scripts write generated outputs under:
+## 3. Verified platforms
 
-```text
-experiments/phase5/results/
+The stack has been run end to end on two platforms. Convergence decisions, selected
+floors, and iteration counts agree between them; wall times do not, and only the first
+platform's timings appear in the paper.
+
+| | Platform A (paper) | Platform B (replication) |
+| --- | --- | --- |
+| GPU | NVIDIA GeForce RTX 4090, 24 GiB (SM 8.9) | NVIDIA GeForce RTX 5090, 32 GiB (SM 12.0) |
+| CuPy | 13.6.0 (`cupy-cuda12x`) | 14.0.1 (`cupy-cuda13x`) |
+| CUDA runtime | 12.x | 13.0 |
+| Python | 3.10.18 | 3.11 |
+| Covers | all reported results | mechanism matrix, precision ablation, optimized-density perturbation, 1M-element case |
+
+**Platform B notes.** Two adjustments are needed on CuPy 14 / CUDA 13; the second is
+already handled in the code:
+
+1. CuPy 14's CUB-backed reductions fail to compile against the CUDA 13 CCCL headers
+   (`ambiguous "?" operation … __nv_bfloat16`). Disable the accelerator before running:
+   ```bash
+   export CUPY_ACCELERATORS=""      # PowerShell: $env:CUPY_ACCELERATORS = ""
+   ```
+2. The fused matvec kernels compile with `-std=c++17` on CuPy ≥ 14 and `-std=c++14` on
+   CuPy 13; `src/gpu_fem/cuda_fused_matvec.py` selects this from the installed version.
+
+A `cupy-cuda12x` wheel will not run on Blackwell (SM 12.0) — it raises
+`CUDA_ERROR_NO_BINARY_FOR_GPU`. Install `cupy-cuda13x` for those GPUs.
+
+**Memory.** Flexible GMRES stores two Krylov bases (V and Z). With the reported
+`--restart 300` in FP64 that is \(2\times300\times n_{\mathrm{free}}\times8\) bytes, which
+dominates the footprint at large sizes:
+
+| Elements | free DOFs | basis at restart 300 | basis at restart 100 |
+| --- | --- | --- | --- |
+| 512,000 | 1.60 M | 7.7 GiB | 2.6 GiB |
+| 514,500 | 1.62 M | 7.8 GiB | 2.6 GiB |
+| 1,000,000 | 3.11 M | 14.9 GiB | 5.0 GiB |
+
+Peak post-solve device memory observed: ≈3.8 GiB for the 40.5k–64k held-out policy matrix
+and ≈18–23 GiB for the ~500k optimized-density cases. A 24 GiB card therefore covers every
+case reported in the paper; at 10⁶ elements the FP64 configuration needs a restarted method
+(`experiments/phase5/run_scale_1m_restarted.sh`, restart 100) or the reduced-precision
+hierarchy of the companion solver work. Since admissibility is defined relative to the
+iteration budget, note that shrinking the budget to fit memory can turn a keep into a raise.
+
+---
+
+## 4. Repository layout
+
+```
+src/gpu_fem/                   solver implementation
+  presets.py                   problem specifications (geometry, BCs, loads, sizes)
+  bc_generator.py              boundary-condition and load assembly
+  cuda_fused_matvec.py         fused gather-GEMM-scatter fine-level operator (FP32/BF16)
+  multigrid_v4.py              Galerkin GMG hierarchy, smoothers, coarse correction,
+                               and `_cupy_fgmres` (the outer Krylov iteration)
+  pub_simp_solver.py           element stiffness, edof tables, sparse index helpers
+  solver_v4.py, simp_gpu.py    SIMP optimization loop used by the trajectory runs
+  local_agents.py, workflow.py optimization routing used by run_simp_floor_trajectory.py
+
+experiments/paper4/
+  run_experiments_e1_e10.py    `_build_components()` — builds spec, BCs, operator, and
+                               hierarchy for a preset. Every phase-5 GPU driver imports it.
+
+experiments/phase5/            the study itself (drivers, analyzers, figures)
+ci/smoke_check.py              syntax check over all released Python files
+environment.yml                pinned environment (Platform A)
+environment-blackwell.yml      pinned environment (Platform B: CuPy 14 / CUDA 13)
 ```
 
-This directory is ignored in the code-only release. Result directories are
-created by the experiment scripts as needed. If you want a clean rerun, remove or
-move the relevant subdirectory before launching the script again.
+### Where the method lives
 
-The common pattern is:
+| Component of the policy | Implementation |
+| --- | --- |
+| Probe: 100 FGMRES iterations at `rho_0`, records `r50`, `r100` | `run_gmg_floor_detector_prospective.py`, `run_gmg_floor_detector_density_field.py` |
+| Preserve/escalate rule (`keep`/`raise` in the CSV schema): `r50 ≥ 1e-2`, or `r100 ≥ 1e-4` and `r100/r50 ≥ 0.6` | same drivers: `--high-residual-threshold`, `--plateau-residual-threshold`, `--plateau-ratio-threshold` |
+| Floor ladder `1e-3 → 1e-2` | `--raised-rho-mins` |
+| **Acceptance guard**: recomputed `‖f − Ku‖ / ‖f‖ ≤ tol` | `solve_at_floor()` in both drivers — `final = ‖F − A(x)‖ / ‖F‖` is formed *after* the solve returns and is the only criterion that sets `solve_converged` |
+| In-loop version of the same policy | `run_simp_floor_trajectory.py --policy guarded_adaptive` |
 
-```bash
-python experiments/phase5/<script>.py --out-dir experiments/phase5/results/<run_name>
-```
+The distinction the paper turns on is visible in the output columns:
+`solver_reported_converged` is the solver's internal flag, `solve_converged` is the
+recomputed-residual verdict. Rows where they disagree are the false acceptances (`false keeps` in the frozen CSV schema) that the paper turns on.
 
-Some legacy plotting scripts have default input paths tied to the paper
-workspace. Prefer passing explicit `--input`, `--out-dir`, or equivalent
-arguments when rerunning in a fresh clone.
+---
 
-## Recommended Reproduction Order
+## 5. Reproduction guide
 
-The following order rebuilds the evidence chain from cheaper diagnostics to
-expensive GPU queues.
+Run all commands from the repository root; add `--help` to any driver for its full flag
+list. Runtimes are Platform A.
 
-### 1. Reduced Direct Floor Atlas
-
-Run reduced assembled/direct floor sweeps:
+### 5.1 Reduced direct floor atlas — *Fig. S1*
 
 ```bash
 python experiments/phase5/run_direct_floor_atlas.py \
+  --seeds 7,13,19 --probabilities 0.10,0.12,0.15,0.18,0.20,0.35 \
   --out-dir experiments/phase5/results/direct_floor_atlas_seeded
-```
 
-Validate the direct detector:
-
-```bash
 python experiments/phase5/validate_admissibility_detector.py \
   --atlas experiments/phase5/results/direct_floor_atlas_seeded/direct_floor_atlas.csv \
   --critical experiments/phase5/results/direct_floor_atlas_seeded/direct_floor_critical.csv \
+  --safety-factors 1,10,100 \
   --out-dir experiments/phase5/results/admissibility_detector_validation
 ```
 
-Scientific purpose: establish that sparse low-density frozen fields have a
-measurable floor transition before testing the full matrix-free GMG hierarchy.
+Reduced 24×12×6 assembled/direct solves; establishes that a floor boundary exists before
+the full hierarchy is involved. Minutes, low memory.
 
-### 2. Retrospective GMG Detector Check
+### 5.2 Retrospective GMG labels — *thresholds are fixed here*
 
 ```bash
 python experiments/phase5/validate_gmg_solver_floor_detector.py \
+  --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
+  --plateau-ratio-threshold 0.6 \
   --out-dir experiments/phase5/results/gmg_solver_floor_detector
 ```
 
-Scientific purpose: evaluate the residual-probe rule on labeled full-solver
-cases and record true raises, true keeps, and rescue outcomes.
+The 16 development states. These are the *only* states used to choose the rule
+thresholds; everything below is held out.
 
-### 3. Prospective Random and Held-Out GMG Runs
+### 5.3 Held-out suite — *Fig. 5* (the main evaluation)
 
-Use `run_gmg_floor_detector_prospective.py` for prospective random transfer,
-bridge transfer, held-out guarded validation, full original-floor audits, and
-policy baselines. The exact flags depend on the row you are reproducing; inspect
-the script help first:
+72 cantilever states (8 seeds × 9 solid probabilities) and 30 bridge states
+(5 seeds × 6 probabilities) under the guarded policy:
 
 ```bash
-python experiments/phase5/run_gmg_floor_detector_prospective.py --help
+for SEED in 41 43 47 53 59 61 67 71; do
+  python experiments/phase5/run_gmg_floor_detector_prospective.py \
+    --preset cantilever_gpu_medium --seeds $SEED \
+    --probabilities 0.08,0.10,0.12,0.15,0.18,0.20,0.25,0.30,0.35 \
+    --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+    --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
+    --out-dir experiments/phase5/results/heldout_gmg_detector_cantilever_s41_71_guarded_true_residual
+done
+
+for SEED in 41 43 47 53 59; do
+  python experiments/phase5/run_gmg_floor_detector_prospective.py \
+    --preset bridge_gpu_medium --seeds $SEED \
+    --probabilities 0.10,0.15,0.20,0.25,0.30,0.35 \
+    --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+    --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
+    --out-dir experiments/phase5/results/heldout_gmg_detector_bridge_s41_59_guarded_true_residual
+done
 ```
 
-Typical output roots:
+≈40 s/state, ≈70 minutes total. Expect 102/102 `solve_converged=1`, 24 states preserving
+`1e-12`, 78 escalated to `1e-3`, and 4 cantilever rows with
+`solver_reported_converged=1, solve_converged=0` at the original floor — the false
+acceptances.
 
-```text
-experiments/phase5/results/gmg_solver_floor_detector_prospective/
-experiments/phase5/results/heldout_gmg_detector_cantilever_s41_71_guarded_true_residual/
-experiments/phase5/results/heldout_gmg_detector_bridge_s41_59_guarded_true_residual/
-experiments/phase5/results/policy_fixed_floor_baselines/
-experiments/phase5/results/policy_severity_jump_baselines/
+**Reference classifications** come from a separate forced full-budget audit (thresholds disabled, so the
+original floor is always attempted to exhaustion):
+
+```bash
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset cantilever_gpu_medium --seeds 41 \
+  --probabilities 0.08,0.10,0.12,0.15,0.18,0.20,0.25,0.30,0.35 \
+  --high-residual-threshold 1e99 --plateau-residual-threshold 1e99 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+  --out-dir experiments/phase5/results/heldout_full_true_labels_cantilever_s41
 ```
 
-Scientific purpose: test whether the guarded policy converges held-out frozen
-GMG cases, quantify detector-only false keeps, and compare policy time against
-full original-floor-then-fallback and fixed-floor baselines.
+Repeat per seed and geometry; directory names must match the list in
+`summarize_review_experiments.py`. ≈126 s/state, ≈3.5 hours total. Fixed-floor and
+severity-jump baselines on the same matrix are queued by
+`run_observed_queue.py --task fixed_floor_baselines` and `--task severity_jump_baselines`.
 
-### 4. Optimized-Density Transfer
+### 5.4 Bridge ladder and fine sweep — *Fig. 8a–c*
 
-This step requires the separate fixed-density artifact bundle:
+```bash
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset bridge_gpu_medium --seeds 23 --probabilities 0.10,0.20,0.35 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+  --out-dir experiments/phase5/results/gmg_solver_floor_detector_transfer_bridge_seed23_ladder
 
-```text
-experiments/paper2/runs/C64_MF/
-experiments/paper2/runs/C216_MF/
-experiments/paper2/runs/C512_MF/
-experiments/paper2/runs/B500_MF/
-experiments/paper2/runs/Brk500_MF/
-experiments/paper2/runs/M500_MF/
-experiments/paper2/runs/T500_MF/
-experiments/paper2/runs/Col500_MF/
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset bridge_gpu_medium --seeds 23,41 --probabilities 0.10,0.20,0.35 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-10,1e-8,1e-6,1e-5,1e-4,1e-3,1e-2 \
+  --out-dir experiments/phase5/results/fine_ladder_bridge_seed23_41_strict_true_residual
 ```
 
-Each directory should include `meta.json`, `iters.csv`, `rho_best.npy`, and
-`rho_final.npy`.
+The fine sweep shows the reported ladder is conservative but not arbitrary: 4 of 6
+states need `1e-2`, one needs `1e-3`, one is admissible at `1e-6`.
 
-Run one case:
+### 5.5 Optimized-density transfer — *Fig. S3* (needs the density bundle)
 
 ```bash
 python experiments/phase5/run_gmg_floor_detector_density_field.py \
-  --case C64_MF \
-  --density-kind final \
+  --preset cantilever_gpu_medium \
+  --density-paths experiments/paper2/runs/C64_MF/rho_final.npy \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
   --out-dir experiments/phase5/results/optimized_density_C64_MF_strict_true_residual
 ```
 
-Check the script help for the exact available case/state flags:
+Preset per artifact: `C64_MF → cantilever_gpu_medium`, `C216_MF → cantilever_gpu_large`,
+`C512_MF → cantilever_gpu_xlarge`, `B500_MF → bridge_gpu_500k`,
+`Brk500_MF → bracket_gpu_500k`, `M500_MF → mbb_gpu_xlarge`, `T500_MF → torsion_gpu_500k`,
+`Col500_MF → column_gpu_500k`, `C1M_MF → cantilever_gpu_xxlarge`. Seven of the eight
+reported fields preserve `1e-12`; the large bridge field is connected under the `rho ≥ 0.5`
+support diagnostic and still requires `1e-2`.
 
-```bash
-python experiments/phase5/run_gmg_floor_detector_density_field.py --help
-```
+### 5.6 What a fixed raised floor changes — *Fig. 7*
 
-Scientific purpose: test the floor policy on fixed optimized-density states
-rather than only random stress fields.
-
-### 5. Threshold Sensitivity
-
-```bash
-python experiments/phase5/analyze_gmg_threshold_sensitivity.py \
-  --predictions experiments/phase5/results/gmg_solver_floor_detector/gmg_solver_floor_detector_predictions.csv \
-  --out-dir experiments/phase5/results/gmg_solver_floor_detector_sensitivity
-```
-
-Scientific purpose: show how detector false keeps and raise/keep decisions vary
-around the reported high-residual and plateau thresholds.
-
-### 6. Policy-Overhead Accounting
-
-```bash
-python experiments/phase5/analyze_gmg_policy_overhead.py \
-  --out-dir experiments/phase5/results/gmg_policy_overhead
-```
-
-Scientific purpose: report selected-solve iterations separately from probe,
-reuse, and failed-ladder iteration cost.
-
-### 7. Fixed-Floor Controls
+Compliance and timing controls, then the two perturbation studies:
 
 ```bash
 python experiments/phase5/run_gmg_fixed_floor_controls.py \
   --manifest experiments/phase5/fixed_floor_control_manifest.csv \
   --out-dir experiments/phase5/results/gmg_fixed_floor_controls_strict_true_residual
-```
 
-Analyze true-keep sensitivity perturbation:
-
-```bash
+# severe random true-keep states (needs the held-out audit from 5.3)
 python experiments/phase5/analyze_gmg_sensitivity_perturbation.py \
+  --floors 1e-12,1e-3,1e-2 \
   --out-dir experiments/phase5/results/heldout_true_keep_sensitivity_perturbation
+
+# optimized designs (needs the density bundle)
+python experiments/phase5/analyze_optimized_density_sensitivity_perturbation.py \
+  --floors 1e-12,1e-3,1e-2 \
+  --out-dir experiments/phase5/results/optimized_density_sensitivity_perturbation
 ```
 
-Scientific purpose: show that globally raised floors can be faster but change
-the operator and sensitivity vectors on benign true-keep cases.
+The last two ask the same question of different state families, and the difference
+between them is the point: severe random states move a great deal, optimized designs move
+much less. `bash experiments/phase5/run_scale_and_perturbation_block.sh` runs the
+optimized-design study followed by the million-element scale check.
 
-### 8. Mechanism and Policy-Sensitivity Queues
-
-The observed queue runner serializes longer experiment groups and skips chunks
-whose expected output already exists:
+### 5.7 Robustness — *Fig. 8d, Figs. S2 and S4*
 
 ```bash
-python experiments/phase5/run_observed_queue.py \
-  --task review_extension_sweeps \
-  --hard-timeout-min 75 \
-  --idle-timeout-min 25
+python experiments/phase5/analyze_gmg_threshold_sensitivity.py \
+  --out-dir experiments/phase5/results/gmg_solver_floor_detector_sensitivity
+
+python experiments/phase5/run_observed_queue.py --task review_extension_sweeps \
+  --hard-timeout-min 75 --idle-timeout-min 25
 ```
 
-This queue covers representative SIMP-exponent sensitivity, original-floor
-sensitivity, and stack-mechanism ablation chunks.
-
-Scientific purpose: test whether the selected-floor pattern is tied to one SIMP
-exponent, one original floor, or one specific stack component.
-
-### 9. Fixed-Floor and Guarded Adaptive Trajectories
-
-Run fixed-floor trajectory controls:
+`review_extension_sweeps` covers the SIMP-exponent sweep, the original-floor sweep, and
+the seven-variant stack ablation (3-level hierarchy, Jacobi smoother, W-cycle, tolerance
+`1e-5`/`1e-7`, and removal of the fine-level adaptive correction — the
+`no_root_correction` variant in the CSV schema). The precision variant is run directly:
 
 ```bash
-python experiments/phase5/run_observed_queue.py \
-  --task simp_floor_trajectories \
-  --hard-timeout-min 180 \
-  --idle-timeout-min 45
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset bridge_gpu_medium --seeds 43 --probabilities 0.10,0.20,0.35 \
+  --stack-variant fp32_fine --fine-smoother fp32 \
+  --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+  --out-dir experiments/phase5/results/replication/fp32_fine/bridge_s43
 ```
 
-Run guarded adaptive in-loop trajectory jobs:
+`bash experiments/phase5/run_replication_block.sh` runs the FP64 and FP32 blocks for both
+geometries in sequence. Running the FP64 block on a second GPU/CuPy/CUDA combination is
+also how the platform replication in the paper was produced.
+
+### 5.8 Optimization trajectories — *Fig. 3*
 
 ```bash
-python experiments/phase5/run_observed_queue.py \
-  --task guarded_adaptive_trajectories \
-  --hard-timeout-min 180 \
-  --idle-timeout-min 45
+# fixed-floor controls, no acceptance test (the unguarded baseline)
+python experiments/phase5/run_observed_queue.py --task simp_floor_trajectories \
+  --hard-timeout-min 180 --idle-timeout-min 45
+
+# the guarded policy applied at every outer iteration
+python experiments/phase5/run_simp_floor_trajectory.py \
+  --presets cantilever_gpu_medium,bridge_gpu_medium --iters 40 \
+  --policy guarded_adaptive --baseline-rho-min 1e-12 --ladder-rho-mins 1e-3,1e-2 \
+  --out-dir experiments/phase5/results/guarded_adaptive_trajectories
 ```
 
-Scientific purpose: distinguish frozen-state solver admissibility from repeated
-floor choices during optimization. The paper treats the guarded adaptive
-trajectory evidence as a two-case addendum, not a broad optimization-path
-preservation claim.
+`--policy fixed_floor` (the default) sweeps `--rho-mins` with no acceptance test;
+`--policy guarded_adaptive` runs Algorithm 1 at every outer iteration and records
+`solver_true_rel_residual`, `selected_rho_min`, and `policy_trigger` per iteration.
 
-### 10. Summary Tables
+The fixed-`1e-12` cantilever control is the one to look at: from outer iteration 19 its
+state solve returns at the 300-iteration cap every time and its compliance oscillates
+between 0.484 and 4.502 — while the run reports `failures: 0`, because no acceptance test
+is applied. The guarded run on the same problem accepts all 40 solves (largest accepted
+true residual `9.84e-07`) and switches to `1e-3` at iteration 17, the first iteration after
+the continuation step.
 
-After completing the desired result directories, rebuild consolidated summaries:
+### 5.9 Summaries and figures
 
 ```bash
-python experiments/phase5/summarize_review_experiments.py \
-  --results-root experiments/phase5/results \
-  --out-dir experiments/phase5/results/review_experiment_summary
+python experiments/phase5/summarize_review_experiments.py   # no arguments; fixed paths
+python experiments/phase5/make_paper5_v3_figures.py         # manuscript figure set
 ```
 
-Scientific purpose: produce the curated CSV files used by tables and
-figure-generation scripts, while keeping raw stage outputs separate.
+`summarize_review_experiments.py` consolidates completed result directories into
+`experiments/phase5/results/review_experiment_summary/`, which is what the figure scripts
+read; it skips directories that do not exist, so partial reruns produce partial summaries.
+`make_paper5_v2_figures.py` and `make_paper5_journal_figures.py` are retained and produce
+the earlier figure sets.
 
-### 11. Figure Generation
-
-Figure generation reads summary CSVs and, for the optimized-density gallery, the
-separate fixed-density input states.
+### 5.10 Conditioning of the reduced problem (CPU only)
 
 ```bash
-python experiments/phase5/make_paper5_journal_figures.py
+python experiments/phase5/run_direct_floor_conditioning.py  # ~2 minutes, no GPU
 ```
 
-By default, paper-native figure PDFs are written to the clone-local
-`figures/generated/` directory. Set `PAPER5_FIGURE_OUT` to redirect the output
-elsewhere before rendering.
+Computes the extreme eigenvalues of the constrained operator for the 18 reduced
+`24x12x6` atlas fields at eight floors and writes
+`experiments/phase5/results/direct_floor_conditioning/direct_floor_conditioning.csv`.
+This is the source of the main-text conditioning figure (Fig. 4), including the
+hierarchy-independent screening rule `rho_min >~ c(rho) * eps / tau` of its panel (c);
+it is a diagnostic of the operator, and no result of it is used to accept a solve.
 
-If PyVista off-screen rendering is unavailable, the script contains a
-Matplotlib/scikit-image marching-cubes fallback for the 3D topology gallery.
+### 5.11 Fixed-preconditioner control — the attribution check
 
-## Experiment Matrix
+Disabling both adaptive preconditioner components leaves a fixed linear V-cycle (the
+flexible outer method then coincides with right-preconditioned GMRES). Rerunning the four
+false-acceptance states, their neighbours, one admissible state, and two severe bridge
+states under the full guarded protocol:
 
-| Evidence block | Main scripts | Required inputs | Main outputs |
-| --- | --- | --- | --- |
-| Reduced direct floor boundary | `run_direct_floor_atlas.py`, `validate_admissibility_detector.py` | Synthetic random fields generated by script | Direct floor atlas and detector validation CSVs. |
-| Retrospective GMG detector | `validate_gmg_solver_floor_detector.py` | Existing labeled GMG stage outputs or regenerated probes | Residual-rule predictions and labels. |
-| Prospective/held-out GMG | `run_gmg_floor_detector_prospective.py` | Synthetic random fields generated by script | Guarded selected-floor rows, histories, timings, false-keep audits. |
-| Optimized-density transfer | `run_gmg_floor_detector_density_field.py` | Separate fixed-density artifact bundle | Best/final transfer outcomes and histories. |
-| Threshold sensitivity | `analyze_gmg_threshold_sensitivity.py` | Detector prediction CSVs | Threshold grid and summary CSVs. |
-| Policy overhead | `analyze_gmg_policy_overhead.py` | Transfer and held-out policy outputs | Policy iteration accounting CSVs. |
-| Fixed-floor controls | `run_gmg_fixed_floor_controls.py` | `fixed_floor_control_manifest.csv` | Compliance/timing controls. |
-| Sensitivity perturbation | `analyze_gmg_sensitivity_perturbation.py` | Held-out true-keep outputs | Relative sensitivity-vector perturbation summaries. |
-| Mechanism/sensitivity sweeps | `run_observed_queue.py` | Queue definitions in script and result roots | Mechanism ablation and policy-sensitivity summaries. |
-| Trajectory controls | `run_simp_floor_trajectory.py`, `run_observed_queue.py` | Generated initial conditions and solver stack | Fixed-floor and guarded adaptive trajectory histories. |
-| Summary and figures | `summarize_review_experiments.py`, `make_paper5_journal_figures.py` | Completed result directories and optional fixed-density inputs | Curated summary CSVs and figure PDFs. |
+```bash
+python experiments/phase5/run_gmg_floor_detector_prospective.py   --preset cantilever_gpu_medium --seeds 47,59,71 --probabilities 0.30,0.35   --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2   --high-residual-threshold 10 --plateau-residual-threshold 10   --coarse-correction-policy none --root-local-correction-mode none   --stack-variant fixed_linear_preconditioner   --out-dir experiments/phase5/results/fixed_precond_control_cantilever
+# repeat with --seeds 43 --probabilities 0.35, and with
+# --preset bridge_gpu_medium --seeds 43 --probabilities 0.10,0.20
+```
 
-## Interpretation Notes
+The thresholds of `10` disable the escalation rule, so the original floor is always
+attempted to exhaustion. Expected: **no false acceptance in any of the 18 floor
+attempts** — every rejected attempt returns with its projected estimate 3–6 orders of
+magnitude above tolerance, so every failure is visible. The four false-acceptance states
+fail visibly at `1e-12` and are accepted at `1e-3` in 15–42 iterations; the admissible
+state needs 130 iterations instead of the full stack's 30; the two severe bridge states
+fail at every tested floor although the full stack accepts them at `1e-2`. The
+stopping-estimate drift is therefore tied to the iterate-dependent preconditioner, and
+the components that make severe states solvable are the ones that make the flag
+untrustworthy.
 
-- The residual-probe policy is an empirical solver-control layer for the tested
-  matrix-free GMG-FGMRES stack. It is not a new SIMP material model and not a
-  universal multigrid convergence theorem.
-- The selected floor is accepted only after a recomputed true-residual guard.
-  Detector-only results should be treated as a negative control, not as the
-  operational policy.
-- Fixed raised floors can be faster but intentionally change the operator.
-  Compare fixed-floor controls against true-keep sensitivity and compliance
-  perturbation before interpreting speed alone.
-- Optimized-density transfer uses stored fixed input states. In this code-only
-  release those arrays are absent by design, so exact transfer/gallery
-  reproduction requires the separate artifact bundle.
-- Broad guarded adaptive optimization-path preservation is outside the
-  code release's default claim boundary. The provided trajectory scripts support
-  extension studies.
+---
 
-## Troubleshooting
+## 6. Extending the study
 
-If `ci/smoke_check.py` fails, fix syntax or missing-file damage before running
-GPU jobs.
+- **New geometry:** add a `ProblemSpec` to `src/gpu_fem/presets.py` and pass `--preset`.
+  Nothing in the policy is geometry-specific.
+- **New stack variant:** the drivers expose `--n-levels`, `--smoother-type`,
+  `--cycle-type`, `--fine-smoother`, `--coarse-correction-policy`,
+  `--root-local-correction-mode`, `--inner-krylov-steps`, and `--tol`. Pass
+  `--stack-variant <name>` so the variant is recorded in the output CSV.
+- **New rule:** thresholds are CLI flags; `analyze_gmg_threshold_sensitivity.py` maps the
+  safe region around the reported triplet.
+- **A different acceptance criterion:** the guard is one line in `solve_at_floor()`. A
+  checkpointed variant that recomputes the true residual at iterations 50 and 100 is the
+  most useful untested extension — it is what would make the probe itself trustworthy.
 
-If CuPy cannot see the GPU, verify the NVIDIA driver, CUDA runtime, and
-`cupy-cuda12x` installation inside the active conda environment.
+---
 
-If a large GMG run runs out of memory, start with reduced/direct experiments or
-smaller prospective cases, then scale up.
+## 7. Interpretation boundary
 
-If plotting scripts cannot find input CSVs, either run the corresponding
-experiment/analyzer first or pass explicit input paths. This code-only release
-does not ship generated result tables.
+- The policy is an empirical solver-control layer for the tested stack, not a new SIMP
+  material model and not a multigrid convergence theorem. Raising the floor provably
+  regularizes the operator (monotone coercivity), but that does not prove convergence for
+  any particular hierarchy.
+- The acceptance guard, unlike the thresholds, is not tuned to anything. It is the part
+  worth adopting regardless of stack.
+- Fixed raised floors are faster and converge everywhere in our held-out matrix. They are
+  not neutral: they change the operator, and on severe states they change compliance and
+  gradients substantially. Read §5.6 before choosing one.
+- The two in-loop trajectories demonstrate executable semantics, not optimization-path
+  preservation.
+- All experiments use the FP64 fine path unless `--fine-smoother fp32` is passed.
 
-If optimized-density scripts cannot find `rho_best.npy` or `rho_final.npy`, add
-the separate fixed-density artifact bundle under `experiments/paper2/runs/`.
+---
 
-## License
+## 8. Troubleshooting
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `CUDA_ERROR_NO_BINARY_FOR_GPU` | CuPy wheel has no kernels for your architecture; install `cupy-cuda13x` on Blackwell |
+| `NVRTC_ERROR_COMPILATION` mentioning `__nv_bfloat16` in CCCL headers | CuPy 14 CUB reductions on CUDA 13; `export CUPY_ACCELERATORS=""` |
+| `ModuleNotFoundError: gpu_fem` | Run from the repository root; drivers insert `src/` on `sys.path` themselves |
+| `FileNotFoundError: run_experiments_e1_e10.py` | `experiments/paper4/` is required by every GPU driver; do not prune it |
+| Driver cannot find `rho_final.npy` | Optimized-density inputs ship separately; see §1 |
+| Out of memory on a large preset | Start with `cantilever_gpu_medium`; the 500k presets need ≈8–19 GiB |
+| Plot script cannot find a CSV | Run `summarize_review_experiments.py` first, or the experiment it summarizes |
+| Very slow first run | NVRTC compiles kernels on first use; set `CUPY_CACHE_DIR` to a persistent path |
+
+---
+
+## 9. Citation
+
+See `CITATION.cff` for this repository. The accompanying paper is:
+
+> Yang, S., Wang, J., and Wang, Y. (2026). *When a positive SIMP density floor is not
+> enough: solver admissibility and guarded floor selection in matrix-free 3D topology
+> optimization.* arXiv preprint (identifier to be added on announcement).
+
+Companion preprints for the operator and hierarchy this study wraps:
+
+- *Matrix-Free 3D SIMP Topology Optimization with Fused Gather-GEMM-Scatter Kernels*,
+  <https://arxiv.org/abs/2604.18020>
+- *A Matrix-Free Galerkin Multigrid Solver and Failure-Mode Screen for Single-GPU 3D SIMP
+  Linear Systems*, <https://arxiv.org/abs/2604.26441>
+
+Those papers contribute the kernels and the hierarchy. This one contributes the
+admissibility question, the guarded policy, and the evidence that a solver flag is not an
+acceptance criterion.
+
+## 10. License
 
 BSD 3-Clause. See `LICENSE`.

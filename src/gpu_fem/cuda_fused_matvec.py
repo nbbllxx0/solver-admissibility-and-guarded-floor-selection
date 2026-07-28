@@ -250,6 +250,13 @@ extern "C" __global__ void fused_matvec_bf16(
 # Python wrapper — compile kernels once, expose a matvec() method
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# NVRTC C++ standard for the fused kernels. CuPy 13 (CUDA 12) compiles these
+# sources with C++14; CuPy 14 bundles CCCL headers that require C++17, so the
+# standard is selected from the installed CuPy major version to keep one source
+# working on both toolchains.
+_CXX_STD = "-std=c++17" if int(cp.__version__.split(".")[0]) >= 14 else "-std=c++14"
+
+
 class FusedMatvec:
     """
     Fused gather / KE·u / scatter-add kernel wrapper.
@@ -294,14 +301,14 @@ class FusedMatvec:
         # Compile kernels — BF16 requires SM 8.0+ (Ampere/Ada; WMMA bf16).
         # RTX 4090 is SM 8.9, so compile for sm_80 as the minimum compatible.
         self._k_fp32 = cp.RawKernel(_KERNEL_SRC_FP32, "fused_matvec_fp32",
-                                    options=("-std=c++14",))
+                                    options=(_CXX_STD,))
         # CuPy auto-injects -arch=compute_XX for the current device; WMMA BF16
         # requires SM 8.0+ (Ampere/Ada/Hopper), satisfied on any modern GPU
         # we target here.  No additional nvcc flags needed.
         try:
             self._k_bf16 = cp.RawKernel(
                 _KERNEL_SRC_BF16, "fused_matvec_bf16",
-                options=("-std=c++14",),
+                options=(_CXX_STD,),
             )
             self._bf16_available = True
         except Exception as ex:

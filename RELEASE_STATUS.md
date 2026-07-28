@@ -1,22 +1,63 @@
-# Release Status for Submission Snapshot
+# Release status
 
-Snapshot date: 2026-05-13.
+Public repository: <https://github.com/nbbllxx0/solver-admissibility-and-guarded-floor-selection>
 
-This folder is the code-only companion artifact for the solver-admissibility paper. The local submission snapshot is distributed as:
+## Version 2.1.0 — 2026-07-28
 
-- `../Solver-Admissibility-Code-Release_snapshot_2026-05-13.zip`
-- `../Solver-Admissibility-Code-Release_snapshot_2026-05-13.zip.sha256`
+- **Fixed-preconditioner control documented (README §5.11).** No new code: existing
+  driver flags reproduce the nine-state attribution check reported in the paper
+  (no false acceptance with the adaptive preconditioner components disabled).
+- **Figure generator `make_paper5_v3_figures.py` updated** to the submitted figure set:
+  preserve/escalate vocabulary throughout, three-panel conditioning figure with the
+  screening-rule panel, repaired label collisions, and semantic-colour fixes.
+- **README revised**: preserve/escalate terminology (with the frozen `keep`/`raise`
+  CSV-schema mapping noted), figure references aligned with the submitted manuscript,
+  Platform-B environment file (`environment-blackwell.yml`) listed in the layout,
+  and a citation block for the accompanying paper.
+- `CITATION.cff` completed with abstract and repository URL.
 
-The snapshot archive is the file-level source of truth for the supplied code artifact. It excludes `.git` metadata and Python bytecode caches. The May 13 refresh commits the manuscript-aligned release edits, keeps the Figure 7 density-source provenance comment, and does not change reported numerical results.
+## Version 2.0.0 — 2026-07-27
 
-Git audit state at snapshot time:
+Aligned with the restructured manuscript *When a positive SIMP density floor is not
+enough: solver admissibility and guarded floor selection in matrix-free 3D topology
+optimization*.
 
-- Repository tag: `paper5-submission-2026-05-13`
-- The snapshot archive was created from the tagged Git tree using `git archive`.
-- The release working tree was clean before the snapshot archive was created.
+Changes since 1.0.0:
 
-Files with local modifications at snapshot time:
+- **Added `experiments/paper4/run_experiments_e1_e10.py`.** Every phase-5 GPU driver
+  imports `_build_components()` from this file. Version 1.0.0 omitted it, so no GPU
+  experiment could actually be run from a clean clone. `ci/smoke_check.py` now fails if it
+  or any other load-bearing file is missing.
+- **Added `experiments/phase5/analyze_optimized_density_sensitivity_perturbation.py`.**
+  Measures compliance and compliance-gradient perturbation under fixed raised floors on
+  optimized designs, the counterpart to the existing random-state study.
+- **Added `experiments/phase5/make_paper5_v2_figures.py`**, which builds the manuscript
+  figure set (6 main + 4 supplementary). The earlier ten-figure generator is retained.
+- **Added `run_replication_block.sh`, `run_scale_and_perturbation_block.sh`, and
+  `run_scale_1m_restarted.sh`** for the second-platform replication, the FP32 precision
+  ablation, the optimized-design perturbation study, and the million-element scale check
+  (the last needs a restarted Krylov method to fit the basis in memory; see README §3).
+- **`run_gmg_floor_detector_density_field.py` gained `--fine-smoother`** and records the
+  value in its output, so optimized-density transfers can be run in reduced precision.
+- **Blackwell support.** `src/gpu_fem/cuda_fused_matvec.py` now selects the NVRTC C++
+  standard from the installed CuPy version (`-std=c++17` on CuPy ≥ 14, `-std=c++14`
+  otherwise), which is what CuPy 14's bundled CCCL headers require. Added
+  `environment-blackwell.yml`; README section 3 documents the `CUPY_ACCELERATORS=""`
+  requirement on CUDA 13.
+- **Rewritten README** with the corrected command set. Several version 1.0.0 commands did
+  not match the actual CLIs (`run_gmg_floor_detector_density_field.py` takes `--preset`
+  and `--density-paths`, not `--case`/`--density-kind`; `summarize_review_experiments.py`
+  takes no arguments; there is no `guarded_adaptive_trajectories` queue task).
 
-- None.
+## Verification for this release
 
-For a public archival release, replace this local snapshot note with the permanent repository URL or DOI.
+- `python ci/smoke_check.py` passes: 49 files parse, all required files present.
+- The quick-start GPU command in README section 2 reproduces the reported row
+  (`trigger=keep`, 30 FGMRES iterations, `r50 ≈ 5.3e-07`) on both verified platforms.
+
+## What is not in this repository
+
+Result CSVs, logs, generated figures, and the stored optimized-density input arrays
+(`experiments/paper2/runs/<case>/rho_final.npy`) are distributed with the paper's artifact
+bundle, not here. Everything except the optimized-density transfer study and the
+hardware-specific timing tables can be regenerated from this code alone.

@@ -115,6 +115,13 @@ def main() -> None:
     parser.add_argument("--raised-rho-mins", default="1e-3,1e-2")
     parser.add_argument("--penal", default=4.5, type=float)
     parser.add_argument("--solid-threshold", default=0.5, type=float)
+    parser.add_argument(
+        "--fine-smoother",
+        default="fp64",
+        choices=["fp64", "fp32", "bf16"],
+        help="Precision of the finest-level smoother inside the multigrid preconditioner. "
+             "Coarse levels, the outer Krylov operator, and the acceptance residual stay FP64.",
+    )
     parser.add_argument("--probe-iters", default=100, type=int)
     parser.add_argument("--probe-r50", default=50, type=int)
     parser.add_argument("--restart", default=300, type=int)
@@ -140,7 +147,7 @@ def main() -> None:
     spec, bc, free, free_gpu, edof_gpu, F_free_gpu, mf_op, gmg = paper4._build_components(
         args.preset,
         n_levels=4,
-        fine_smoother="fp64",
+        fine_smoother=args.fine_smoother,
         smoother_type="chebyshev",
         cycle_type="v",
         coarse_correction_policy="residual_line_search",
@@ -306,6 +313,7 @@ def main() -> None:
             "attempted_rho_mins": ";".join(f"{value:.0e}" for value in attempted),
             "n_floor_attempts": len(attempted),
             "penal": args.penal,
+            "fine_smoother": args.fine_smoother,
             "probe_iters": args.probe_iters,
             "restart": args.restart,
             "maxiter": args.maxiter,
@@ -388,6 +396,7 @@ def main() -> None:
         "attempted_rho_mins",
         "n_floor_attempts",
         "penal",
+        "fine_smoother",
         "probe_iters",
         "restart",
         "maxiter",
