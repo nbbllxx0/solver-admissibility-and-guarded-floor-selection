@@ -455,7 +455,7 @@ def graphical_abstract() -> None:
     capped = unguarded[unguarded.cg_iters >= 300]
 
     fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.65))
-    fig.suptitle("A converged solver flag is not a converged solve:\n"
+    fig.suptitle("A reported converged solve is not always a converged solve:\n"
                  "guard SIMP state solves with a recomputed residual",
                  fontsize=9.5, y=1.06, linespacing=1.3)
 
@@ -702,7 +702,7 @@ def fig6_operator_perturbation() -> None:
     groups = [("$10^{-3}$", pert[pert.rho_min == 1e-3].rel_compliance_change.abs() * 100),
               ("$10^{-2}$", pert[pert.rho_min == 1e-2].rel_compliance_change.abs() * 100)]
     _box_points(ax, groups, [C["r3"], C["r2"]],
-                "$|\\Delta C|/C$ (%)", "Compliance, 24 random admissible states")
+                "$|\\Delta C|/C$ (%)", "Compliance, 24 admissible states")
     for i, (_, g) in enumerate(groups, start=1):
         ax.text(i, 104, f"mean {g.mean():.1f}%", ha="center", fontsize=8.0, color=C["ink"])
     ax.set_ylim(-4, 116)
@@ -713,7 +713,7 @@ def fig6_operator_perturbation() -> None:
               ("$10^{-2}$", pert[pert.rho_min == 1e-2].rel_dc_l2_solid)]
     _box_points(ax, groups, [C["r3"], C["r2"]],
                 "relative $\\ell_2$ change of $\\partial C/\\partial\\rho$ (solid elements)",
-                "Sensitivity, 24 random admissible states")
+                "Sensitivity, 24 admissible states")
     for i, (_, g) in enumerate(groups, start=1):
         ax.text(i, 1.045, f"mean {g.mean():.3f}", ha="center", fontsize=8.0)
     ax.set_ylim(-0.04, 1.13)
@@ -887,8 +887,8 @@ def figS5_conditioning() -> None:
                        edgecolor="white", lw=0.5)
     ax.axhline(1.0 / eps, color=C["bad"], ls="--", lw=1.1)
     ax.axhline(1e-6 / eps, color=C["r3"], ls=":", lw=1.1)
-    ax.text(0.02, 0.945, "$\\kappa=\\varepsilon^{-1}$ (FP64 limit)", transform=ax.transAxes,
-            fontsize=7.2, color=C["bad"], va="bottom", ha="left")
+    ax.text(0.02, 0.90, "$\\kappa=\\varepsilon^{-1}$ (FP64 limit)", transform=ax.transAxes,
+            fontsize=7.2, color=C["bad"], va="top", ha="left")
     ax.text(0.02, 0.415, "$\\kappa\\varepsilon=\\tau$", transform=ax.transAxes,
             fontsize=7.2, color=C["r3"], va="bottom", ha="left")
     ax.set_xscale("log")
@@ -897,7 +897,7 @@ def figS5_conditioning() -> None:
     ax.set_ylabel("spectral condition number $\\kappa$")
     ax.set_title("Conditioning against the floor, 18 fields", fontsize=9.0)
     ax.scatter([], [], s=30, color=C["keep"], label="empirical critical floor")
-    ax.legend(frameon=False, fontsize=7.2, loc="upper right")
+    ax.legend(frameon=False, fontsize=7.2, loc="lower left")
     ax.grid(alpha=0.12, which="major")
 
     ax = axes[1]
@@ -910,7 +910,8 @@ def figS5_conditioning() -> None:
                    label=f"{lab} ({int(m.sum())})")
     lim = np.array([1e-11, 1e2])
     ax.plot(lim, lim, color=C["ink"], lw=0.9, ls="--")
-    ax.text(2e-3, 6e-3, "$\\eta=\\kappa\\varepsilon$", fontsize=7.2, rotation=34,
+    # label sits low on the diagonal so it cannot meet the upper-left legend
+    ax.text(1.5e-8, 5e-7, "$\\eta=\\kappa\\varepsilon$", fontsize=7.2, rotation=34,
             color=C["ink"])
     # regression quoted in the text, drawn on the panel; the 27 solves at the
     # backward-stability floor (~3e-13, spread across all kappa*eps) are
@@ -938,7 +939,11 @@ def figS5_conditioning() -> None:
     ax.set_xlabel("$\\kappa\\varepsilon$, conditioning indicator")
     ax.set_ylabel("relative residual of the direct solve")
     ax.set_title("Residuals against the indicator", fontsize=9.0)
-    ax.legend(frameon=False, fontsize=7.0, loc="upper left")
+    # upper left is point-free; an opaque frame keeps the reference diagonal
+    # from striking through the legend text
+    ax.legend(fontsize=7.0, loc="upper left", frameon=True, framealpha=1.0,
+              edgecolor="none", facecolor="white", borderpad=0.4,
+              labelspacing=0.35)
     ax.grid(alpha=0.12, which="major")
 
     # (c) the screening rule rho_min >~ c*eps/tau, with c taken at the smallest
@@ -1003,7 +1008,7 @@ def figS4_policy_sensitivity() -> None:
             r3.append(c.get(1e-3, 0))
             r2.append(c.get(1e-2, 0))
         x = np.arange(len(keys))
-        ax.bar(x, kept, width=0.62, color=C["keep"], label="kept original floor")
+        ax.bar(x, kept, width=0.62, color=C["keep"], label="preserved original floor")
         ax.bar(x, r3, bottom=kept, width=0.62, color=C["r3"], label="escalated to $10^{-3}$")
         ax.bar(x, r2, bottom=np.array(kept) + np.array(r3), width=0.62, color=C["r2"],
                label="escalated to $10^{-2}$")
