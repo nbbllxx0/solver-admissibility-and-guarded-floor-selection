@@ -8,7 +8,7 @@ These 50 CSV files are the per-state and per-run analysis tables from which ever
 figure and every table in the article is computed, including the unguarded
 fixed-floor trajectories, the guarded held-out audits with their rejected-attempt
 histories, the bridge fine-ladder study, the million-element scale check, and the
-source metadata for the eight optimized-density inputs. They are the reduced
+source metadata for the nine optimized-density inputs. They are the reduced
 outputs of the experiment drivers in this repository, not raw solver logs: one
 row per state, per trajectory step, per solve attempt, or per configuration.
 
@@ -16,16 +16,15 @@ row per state, per trajectory step, per solve attempt, or per configuration.
 
 Included: the tables that the article's figures and tables are derived from.
 
-Not included: the eight stored optimized-density fields used by the transfer
-study and the SI gallery. Those are inputs carried over from prior work rather
-than results of this study; their source-run diagnostics are deposited here
-(`review_experiment_summary__optimized_density_case_details.csv`) and reported in
-the article's optimized-source-metadata table instead of redistributing the
-fields themselves.
+Not included here: the nine stored optimized-density input fields used by the
+transfer study, the SI gallery, and the million-element scale check. Those are
+deposited in the sibling directory `../optimized_density_inputs/`, with their
+own checksummed manifest; their source-run diagnostics are also tabulated here
+(`review_experiment_summary__optimized_density_case_details.csv`).
 
-Everything except the transfer study and the hardware-specific wall-time tables
-can be regenerated from the code in this repository alone; see the top-level
-README for the environment files and the per-figure commands.
+Everything except the hardware-specific wall-time tables can be regenerated
+from this repository alone; see the top-level README for the environment files
+and the per-figure commands.
 
 ## Manifest
 
