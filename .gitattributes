@@ -1,0 +1,4 @@
+# The analysis tables are checksummed in data/analysis_tables/MANIFEST.csv.
+# Those hashes are over LF content, so the CSVs must not be line-ending
+# converted on checkout or verification fails on Windows clones.
+data/analysis_tables/*.csv -text
