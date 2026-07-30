@@ -1,0 +1,12 @@
+selection,labeled_cases,high_residual_threshold,plateau_residual_threshold,plateau_ratio_threshold,true_raise,true_keep,false_raise,false_keep,total,false_raise_rate,false_keep_rate,safe
+current_rule,16,0.01,0.0001,0.6,11,5,0,0,16,0.0,0.0,1
+safe_rank_1,16,0.005,3e-05,0.4,11,5,0,0,16,0.0,0.0,1
+safe_rank_2,16,0.005,3e-05,0.5,11,5,0,0,16,0.0,0.0,1
+safe_rank_3,16,0.005,3e-05,0.6,11,5,0,0,16,0.0,0.0,1
+safe_rank_4,16,0.005,3e-05,0.7,11,5,0,0,16,0.0,0.0,1
+safe_rank_5,16,0.005,5e-05,0.4,11,5,0,0,16,0.0,0.0,1
+safe_rank_6,16,0.005,5e-05,0.5,11,5,0,0,16,0.0,0.0,1
+safe_rank_7,16,0.005,5e-05,0.6,11,5,0,0,16,0.0,0.0,1
+safe_rank_8,16,0.005,5e-05,0.7,11,5,0,0,16,0.0,0.0,1
+safe_rank_9,16,0.005,0.0001,0.4,11,5,0,0,16,0.0,0.0,1
+safe_rank_10,16,0.005,0.0001,0.5,11,5,0,0,16,0.0,0.0,1

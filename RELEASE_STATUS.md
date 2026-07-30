@@ -2,6 +2,25 @@
 
 Public repository: <https://github.com/nbbllxx0/solver-admissibility-and-guarded-floor-selection>
 
+Note on tags: the first Zenodo-archived GitHub release was tagged `v1.0.0`
+(DOI 10.5281/zenodo.21697876) although this file already recorded internal
+versions 2.0.0 and 2.1.0; the tag numbering rejoins this file's numbering at
+v2.2.0.
+
+## Version 2.2.0 — 2026-07-30
+
+- **Research-data deposit completed (`data/analysis_tables/`).** 40 analysis
+  tables covering every figure and table in the paper, including the unguarded
+  fixed-floor trajectories, both guarded held-out audits with rejected-attempt
+  histories, the bridge fine ladder, the million-element scale check, the
+  threshold-sensitivity grid, and the optimized-density source metadata. Each
+  file is listed in `MANIFEST.csv` with size, SHA-256, and the manuscript
+  element it supports.
+- `.gitattributes` pins the deposited CSVs to LF so the manifest hashes verify
+  on Windows checkouts.
+- `CITATION.cff` carries the Zenodo concept and version DOIs and matches this
+  file's version numbering.
+
 ## Version 2.1.0 — 2026-07-28
 
 - **Fixed-preconditioner control documented (README §5.11).** No new code: existing
