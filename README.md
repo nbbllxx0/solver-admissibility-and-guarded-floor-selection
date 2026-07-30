@@ -27,19 +27,22 @@ hierarchy, the floor policy, all experiment drivers, all analyzers, the summary 
 and the figure generators. Every number in the paper can be regenerated from this code
 plus a GPU.
 
-**Is not:** a results archive. Result CSVs, logs, figures, and the large stored density
-arrays are not tracked here — fresh runs recreate them under
-`experiments/phase5/results/`. Two things therefore cannot be reproduced from this
-repository alone:
+**Is not:** a raw-log archive. Logs and generated figure files are not tracked —
+fresh runs recreate them under `experiments/phase5/results/`. The paper's data is
+here, though: the reduced analysis tables under `data/analysis_tables/` and the
+nine stored optimized-density input fields under `data/optimized_density_inputs/`
+(place them at `experiments/paper2/runs/<case>/rho_final.npy` to rerun the
+transfer study). The one thing that cannot be reproduced from this repository
+alone:
 
 | Needs | Why | Where to get it |
 | --- | --- | --- |
-| `experiments/paper2/runs/<case>/rho_final.npy` | The optimized-density transfer study and its figure use eight stored final SIMP density fields | Result/artifact bundle deposited with the paper |
 | Reported wall-time tables | Timings are hardware-specific single observed runs | Rerun locally; expect different absolute values |
 
 Everything else — direct atlas, retrospective labels, the 102-state held-out suite, fixed
 floor controls, sensitivity perturbation, threshold and policy sweeps, mechanism
-ablations, and the optimization trajectories — is fully reproducible here.
+ablations, the optimization trajectories, and the optimized-density transfer study — is
+fully reproducible here.
 
 ---
 
