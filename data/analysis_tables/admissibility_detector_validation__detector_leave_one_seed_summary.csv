@@ -1,0 +1,7 @@
+mode,safety_factor,train_tol,true_admissible,true_inadmissible,false_admissible,false_inadmissible,total,false_admissible_rate,false_inadmissible_rate
+median,1.0,1e-06,72,28,2,6,108,0.018518518518518517,0.05555555555555555
+conservative,1.0,1e-06,72,28,2,6,108,0.018518518518518517,0.05555555555555555
+median,10.0,1e-07,67,30,0,11,108,0.0,0.10185185185185185
+conservative,10.0,1e-07,67,30,0,11,108,0.0,0.10185185185185185
+median,100.0,1e-08,59,30,0,19,108,0.0,0.17592592592592593
+conservative,100.0,1e-08,59,30,0,19,108,0.0,0.17592592592592593

@@ -1,0 +1,2 @@
+rows,passes,failures,true_raises,true_keeps,predicted_raises,predicted_keeps,true_positive,true_negative,false_positive,false_negative,sensitivity,specificity,false_keep_rate_all,false_keep_rate_predicted_keep,false_raise_rate_all,false_raise_rate_predicted_raise
+102,102,0,78,24,74,28,74,24,0,4,0.9487179487179487,1.0,0.0392156862745098,0.14285714285714285,0.0,0.0

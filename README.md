@@ -133,6 +133,11 @@ experiments/paper4/
                                hierarchy for a preset. Every phase-5 GPU driver imports it.
 
 experiments/phase5/            the study itself (drivers, analyzers, figures)
+
+data/analysis_tables/          the analysis tables every figure and table in the
+                               paper is computed from, plus MANIFEST.csv (size,
+                               SHA-256, and the paper element each one supports)
+
 ci/smoke_check.py              syntax check over all released Python files
 environment.yml                pinned environment (Platform A)
 environment-blackwell.yml      pinned environment (Platform B: CuPy 14 / CUDA 13)

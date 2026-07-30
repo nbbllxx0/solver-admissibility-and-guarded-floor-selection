@@ -1,0 +1,20 @@
+category,case_id,trigger,selected_floor,probe_iters,probe_final_rel_residual,probe_reusable,n_floor_attempts,attempted_floors,failed_ladder_iters,selected_solve_iters,recorded_policy_iters,reuse_enabled_policy_iters,recorded_overhead_iters,reuse_enabled_overhead_iters,recorded_policy_to_selected_ratio,reuse_enabled_policy_to_selected_ratio,probe_time_s,selected_solve_time_s,failed_ladder_time_s,recorded_policy_time_s,recorded_time_to_selected_ratio,selected_cupy_pool_total_mb_after_solve,solve_converged,solve_final_rel_residual
+cantilever random prospective,seed 23 p=0.1,high_r50,0.001,100,0.0569403099249352,0,1,1e-03,0,135,235,235,100,100,1.7407407407407407,1.7407407407407407,nan,nan,nan,nan,nan,nan,1,8.739679003328003e-07
+cantilever random prospective,seed 23 p=0.12,high_r50,0.001,100,0.10647586060045218,0,1,1e-03,0,124,224,224,100,100,1.8064516129032258,1.8064516129032258,nan,nan,nan,nan,nan,nan,1,8.913585594577765e-07
+cantilever random prospective,seed 23 p=0.15,high_r50,0.001,100,0.04065150939780299,0,1,1e-03,0,105,205,205,100,100,1.9523809523809523,1.9523809523809523,nan,nan,nan,nan,nan,nan,1,8.410172086775291e-07
+cantilever random prospective,seed 23 p=0.18,high_r50,0.001,100,0.3536305466562922,0,1,1e-03,0,79,179,179,100,100,2.2658227848101267,2.2658227848101267,nan,nan,nan,nan,nan,nan,1,8.252404950571165e-07
+cantilever random prospective,seed 23 p=0.2,high_r50,0.001,100,0.35361510084645426,0,1,1e-03,0,66,166,166,100,100,2.515151515151515,2.515151515151515,nan,nan,nan,nan,nan,nan,1,6.371875531952595e-07
+cantilever random prospective,seed 31 p=0.1,high_r50,0.001,100,0.06623939181762513,0,1,1e-03,0,130,230,230,100,100,1.7692307692307692,1.7692307692307692,nan,nan,nan,nan,nan,nan,1,8.442684904707135e-07
+cantilever random prospective,seed 31 p=0.12,high_r50,0.001,100,0.07826858835994119,0,1,1e-03,0,125,225,225,100,100,1.8,1.8,nan,nan,nan,nan,nan,nan,1,6.123408736583911e-07
+cantilever random prospective,seed 31 p=0.15,high_r50,0.001,100,0.13170268602999508,0,1,1e-03,0,102,202,202,100,100,1.9803921568627452,1.9803921568627452,nan,nan,nan,nan,nan,nan,1,9.15800013330613e-07
+cantilever random prospective,seed 31 p=0.18,high_r50,0.001,100,0.4433684856944426,0,1,1e-03,0,83,183,183,100,100,2.2048192771084336,2.2048192771084336,nan,nan,nan,nan,nan,nan,1,5.336844575888102e-07
+cantilever random prospective,seed 31 p=0.2,high_r50,0.001,100,0.39512621679605553,0,1,1e-03,0,71,171,171,100,100,2.408450704225352,2.408450704225352,nan,nan,nan,nan,nan,nan,1,5.155979001947712e-07
+cantilever random prospective,seed 23 p=0.35,keep,1e-12,81,5.509979662742406e-07,1,1,1e-12,0,80,161,81,81,1,2.0125,1.0125,nan,nan,nan,nan,nan,nan,1,9.983302067483779e-07
+cantilever random prospective,seed 31 p=0.35,keep,1e-12,83,6.422444243581049e-07,1,1,1e-12,0,83,166,83,83,0,2.0,1.0,nan,nan,nan,nan,nan,nan,1,6.229022830503174e-07
+bridge random geometry transfer,seed 23 p=0.1,high_r50,0.01,100,0.5265243538913958,0,2,1e-03;1e-02,300,178,578,578,400,400,3.247191011235955,3.247191011235955,nan,nan,nan,nan,nan,nan,1,5.18669409108972e-07
+bridge random geometry transfer,seed 23 p=0.2,high_r50,0.01,100,0.35445562738251235,0,2,1e-03;1e-02,300,165,565,565,400,400,3.4242424242424243,3.4242424242424243,nan,nan,nan,nan,nan,nan,1,8.213026539107537e-07
+bridge random geometry transfer,seed 23 p=0.35,high_r50,0.001,100,0.09019113920608822,0,1,1e-03,0,140,240,240,100,100,1.7142857142857142,1.7142857142857142,nan,nan,nan,nan,nan,nan,1,8.90842935161571e-07
+optimized SIMP density,B500_MF,high_r50,0.01,100,0.041016494290937525,0,2,1e-03;1e-02,300,263,663,663,400,400,2.5209125475285172,2.5209125475285172,nan,nan,nan,nan,nan,nan,1,7.690719149934285e-07
+optimized SIMP density,Brk500_MF,keep,1e-12,35,7.662385325192108e-07,1,1,1e-12,0,35,70,35,35,0,2.0,1.0,nan,nan,nan,nan,nan,nan,1,7.662385324577877e-07
+optimized SIMP density,C512_MF,keep,1e-12,35,6.446588257309602e-07,1,1,1e-12,0,35,70,35,35,0,2.0,1.0,nan,nan,nan,nan,nan,nan,1,6.563917557438588e-07
+optimized SIMP density,C64_MF,keep,1e-12,17,2.5212708639197136e-07,1,1,1e-12,0,17,34,17,17,0,2.0,1.0,nan,nan,nan,nan,nan,nan,1,2.5212708139249e-07
