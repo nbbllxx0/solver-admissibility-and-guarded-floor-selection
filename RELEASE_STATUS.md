@@ -7,6 +7,17 @@ Note on tags: the first Zenodo-archived GitHub release was tagged `v1.0.0`
 versions 2.0.0 and 2.1.0; the tag numbering rejoins this file's numbering at
 v2.2.0.
 
+## Version 2.2.1 — 2026-07-30
+
+- **Optimized-density input arrays deposited (`data/optimized_density_inputs/`).**
+  The nine stored fields used by the transfer study, the SI gallery, and the
+  million-element scale check (33.1 MB, float64), each checksummed in a
+  MANIFEST.csv with shape, dtype, minimum, and mean. With these, the
+  optimized-density transfer study is reproducible from this repository alone.
+- Deposit metadata corrected: RELEASE_STATUS table count (50, was misstated as
+  40), manifest `supports` cross-references updated to the journal manuscript's
+  table numbering, CITATION.cff terminology aligned (preserve/escalate).
+
 ## Version 2.2.0 — 2026-07-30
 
 - **Research-data deposit completed (`data/analysis_tables/`).** 50 analysis
@@ -79,6 +90,6 @@ Changes since 1.0.0:
 Raw logs and generated figures are not stored here. The reduced result tables the
 paper's figures and tables are computed from *are* here, under
 `data/analysis_tables/` (since v2.2.0; see that entry above). The stored
-optimized-density input arrays (`experiments/paper2/runs/<case>/rho_final.npy`)
-are not yet deposited. Everything except the optimized-density transfer study and
-the hardware-specific timing tables can be regenerated from this code alone.
+optimized-density input arrays are deposited under `data/optimized_density_inputs/`
+(since v2.2.1). Everything except the hardware-specific timing tables can be
+regenerated from this repository alone.

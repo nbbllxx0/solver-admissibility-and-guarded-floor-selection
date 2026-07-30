@@ -138,6 +138,10 @@ data/analysis_tables/          the analysis tables every figure and table in the
                                paper is computed from, plus MANIFEST.csv (size,
                                SHA-256, and the paper element each one supports)
 
+data/optimized_density_inputs/ the nine stored density fields the transfer study,
+                               SI gallery, and 1M scale check take as inputs,
+                               with their own checksummed MANIFEST.csv
+
 ci/smoke_check.py              syntax check over all released Python files
 environment.yml                pinned environment (Platform A)
 environment-blackwell.yml      pinned environment (Platform B: CuPy 14 / CUDA 13)

@@ -32,7 +32,7 @@ authors:
     given-names: Yunsheng
     affiliation: "Santa Clara University"
 license: BSD-3-Clause
-version: "2.2.0"
+version: "2.2.1"
 date-released: "2026-07-30"
 keywords:
   - topology optimization

@@ -17,6 +17,7 @@ figures/generated/
 *.pdf
 *.png
 *.npy
+!data/optimized_density_inputs/*.npy
 *.npz
 *.vtk
 *.vtu
