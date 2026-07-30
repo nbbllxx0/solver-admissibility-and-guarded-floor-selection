@@ -9,7 +9,7 @@ v2.2.0.
 
 ## Version 2.2.0 — 2026-07-30
 
-- **Research-data deposit completed (`data/analysis_tables/`).** 40 analysis
+- **Research-data deposit completed (`data/analysis_tables/`).** 50 analysis
   tables covering every figure and table in the paper, including the unguarded
   fixed-floor trajectories, both guarded held-out audits with rejected-attempt
   histories, the bridge fine ladder, the million-element scale check, the

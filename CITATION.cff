@@ -5,7 +5,7 @@ abstract: >-
   Matrix-free GPU finite-element stack, Galerkin geometric-multigrid hierarchy,
   and guarded SIMP density-floor selection policy for three-dimensional topology
   optimization, together with every experiment reported in the accompanying
-  paper: held-out keep/raise validation, acceptance-guard audits, fixed-floor
+  paper: held-out preserve/escalate validation, acceptance-guard audits, fixed-floor
   operator-perturbation controls, threshold and stack sensitivity sweeps, and
   in-loop optimization trajectories.
 type: software
