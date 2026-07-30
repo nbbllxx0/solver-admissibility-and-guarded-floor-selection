@@ -4,7 +4,7 @@ Research-data deposit for the article *When a positive SIMP density floor is not
 enough: solver admissibility and guarded floor selection in matrix-free 3D
 topology optimization*.
 
-These 40 CSV files are the per-state and per-run analysis tables from which every
+These 50 CSV files are the per-state and per-run analysis tables from which every
 figure and every table in the article is computed, including the unguarded
 fixed-floor trajectories, the guarded held-out audits with their rejected-attempt
 histories, the bridge fine-ladder study, the million-element scale check, and the
