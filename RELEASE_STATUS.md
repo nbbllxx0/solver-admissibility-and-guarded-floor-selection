@@ -76,7 +76,9 @@ Changes since 1.0.0:
 
 ## What is not in this repository
 
-Result CSVs, logs, generated figures, and the stored optimized-density input arrays
-(`experiments/paper2/runs/<case>/rho_final.npy`) are distributed with the paper's artifact
-bundle, not here. Everything except the optimized-density transfer study and the
-hardware-specific timing tables can be regenerated from this code alone.
+Raw logs and generated figures are not stored here. The reduced result tables the
+paper's figures and tables are computed from *are* here, under
+`data/analysis_tables/` (since v2.2.0; see that entry above). The stored
+optimized-density input arrays (`experiments/paper2/runs/<case>/rho_final.npy`)
+are not yet deposited. Everything except the optimized-density transfer study and
+the hardware-specific timing tables can be regenerated from this code alone.
