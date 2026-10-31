@@ -7,7 +7,7 @@ Note on tags: the first Zenodo-archived GitHub release was tagged `v1.0.0`
 versions 2.0.0 and 2.1.0; the tag numbering rejoins this file's numbering at
 v2.2.0.
 
-## Version 2.3.0 — 2026-10-30
+## Version 2.3.0 — 2026-10-31
 
 Aligned with the revised manuscript *Iterative solvers in GPU multigrid topology
 optimization can report false convergence, and a recomputed residual catches it*.

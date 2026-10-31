@@ -16,6 +16,9 @@ identifiers:
     value: "10.5281/zenodo.21697875"
     description: "Concept DOI — always resolves to the latest archived release"
   - type: doi
+    value: "10.5281/zenodo.23827546"
+    description: "Version DOI — v2.3.0"
+  - type: doi
     value: "10.5281/zenodo.21708345"
     description: "Version DOI — v2.2.1"
   - type: doi
@@ -36,7 +39,7 @@ authors:
     affiliation: "Santa Clara University"
 license: BSD-3-Clause
 version: "2.3.0"
-date-released: "2026-10-30"
+date-released: "2026-10-31"
 keywords:
   - topology optimization
   - SIMP
