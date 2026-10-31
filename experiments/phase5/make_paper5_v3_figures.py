@@ -1092,23 +1092,23 @@ def figS3_optimized_gallery() -> None:
         ax.imshow(v1._pad_image(image, y_frac=0.03, x_frac=0.02))
         ax.set_axis_off()
         floor = "escalated to $10^{-2}$" if raised else "preserved at $10^{-12}$"
-        ax.set_title(f"{title}\n{floor}", fontsize=9.0,
+        ax.set_title(f"{title}\n{floor}", fontsize=9.6,
                      color=C["r2"] if raised else C["ink"])
         mant, expo = f"{row.probe_r50:.1e}".split("e")
         gray = float(((density > 0.05) & (density < 0.95)).mean()) * 100.0
         gray_txt = "0" if gray == 0 else (f"{gray:.2f}" if gray >= 0.01 else "$<$0.01")
-        ax.text(0.5, 0.055,
+        ax.text(0.5, 0.085,
                 f"$r_{{50}} = {mant}\\times 10^{{{int(expo)}}}$,  "
                 f"{int(row.solve_iters)} iterations",
-                transform=ax.transAxes, ha="center", va="bottom", fontsize=7.4, color=C["gray"])
-        ax.text(0.5, -0.02, f"gray elements {gray_txt}%",
-                transform=ax.transAxes, ha="center", va="bottom", fontsize=7.0,
+                transform=ax.transAxes, ha="center", va="bottom", fontsize=8.4, color=C["gray"])
+        ax.text(0.5, -0.025, f"gray elements {gray_txt}%",
+                transform=ax.transAxes, ha="center", va="bottom", fontsize=8.2,
                 color=C["bad"] if gray > 0.05 else C["gray"])
     handles = [Line2D([], [], marker="s", ls="", color=C["keep"], label="original floor preserved"),
                Line2D([], [], marker="s", ls="", color=C["r2"], label="escalated to $10^{-2}$")]
-    fig.legend(handles=handles, frameon=False, loc="lower center", ncol=2, fontsize=8.4,
+    fig.legend(handles=handles, frameon=False, loc="lower center", ncol=2, fontsize=9.0,
                bbox_to_anchor=(0.5, -0.01))
-    fig.subplots_adjust(left=0.01, right=0.99, bottom=0.08, top=0.93, wspace=0.01, hspace=0.30)
+    fig.subplots_adjust(left=0.01, right=0.99, bottom=0.08, top=0.93, wspace=0.01, hspace=0.36)
     _save(fig, "figS3_optimized_density_gallery")
 
 

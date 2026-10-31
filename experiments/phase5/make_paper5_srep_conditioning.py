@@ -68,7 +68,7 @@ def main():
                          "ps.fonttype": 42, "mathtext.fontset": "dejavusans"})
     teal, red, blue, gray = "#3B9C8C", "#B64B3A", "#2F6F9F", "#697A82"
     fig, axes = plt.subplots(1, 3, figsize=(165 / 25.4, 78 / 25.4))
-    fig.subplots_adjust(left=.085, right=.985, bottom=.22, top=.83, wspace=.73)
+    fig.subplots_adjust(left=.085, right=.97, bottom=.22, top=.83, wspace=.73)
     for i, ax in enumerate(axes):
         ax.set_xscale("log"); ax.set_yscale("log")
         ax.tick_params(which="both", length=2.4, width=.6, pad=2)

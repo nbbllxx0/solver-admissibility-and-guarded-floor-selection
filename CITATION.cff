@@ -38,7 +38,7 @@ authors:
     given-names: Yunsheng
     affiliation: "Santa Clara University"
 license: BSD-3-Clause
-version: "2.3.0"
+version: "2.3.1"
 date-released: "2026-10-31"
 keywords:
   - topology optimization
@@ -63,4 +63,4 @@ preferred-citation:
     - family-names: Wang
       given-names: Yunsheng
   year: 2026
-  notes: "Manuscript. An earlier version is arXiv:2607.26382. Update journal, volume, DOI, and URL fields after publication."
+  notes: "Manuscript. An earlier version is arXiv:2607.26382."

@@ -7,6 +7,46 @@ Note on tags: the first Zenodo-archived GitHub release was tagged `v1.0.0`
 versions 2.0.0 and 2.1.0; the tag numbering rejoins this file's numbering at
 v2.2.0.
 
+## Version 2.3.1 — 2026-10-31
+
+Corrections found in a pre-submission audit of the manuscript, with two new GPU reruns.
+
+- **Reference replay deposited and its false-acceptance count corrected.** The
+  300-iteration replay of the 102 held-out states (`heldout_full_true_labels_*`, 26
+  tables) is now in the deposit. It has 9 states (7 cantilever, 2 bridge) whose
+  original-floor solve stopped with the convergence flag set and failed the recomputed
+  residual; the earlier README said 4, which is the guarded policy's count among its 28
+  predicted preserves.
+- **Per-attempt logging.** `run_gmg_floor_detector_prospective.py` also writes
+  `prospective_attempts.csv`: the solver's flag, stop reason (tolerance, iteration cap or
+  Krylov breakdown), last residual estimate and recomputed residual for every floor
+  attempt. No solver behaviour changed.
+- **Rerun of the nine replay false acceptances** (`replay_false_acceptance_rerun_2026-10-30`,
+  15 tables): seven cantilever states are flagged again, with recomputed residuals of
+  1.4–56 times the tolerance; the two bridge states reach the cap on that GPU.
+- **Fixed-V-cycle control rerun.** The v2.3.0 control left the inner Krylov wrapper on
+  (`--inner-krylov-steps` defaults to 10), so it was not a fixed preconditioner. The
+  rerun with `--inner-krylov-steps 0` (`fixed_precond_control_noinner_2026-10-30`, 9
+  tables) gives no false acceptance in 18 floor attempts. A check with the wrapper on
+  (`fixed_precond_control_inner10_check_2026-10-30`, 3 tables) shows two bridge attempts
+  that the solver flags as converged at a Krylov breakdown, with estimates near 1. The
+  three v2.3.0 control tables are kept and marked as superseded in `MANIFEST.csv`.
+- **Source-run logs of the eight optimized designs** (`paper2_runs__*__iters.csv`), which
+  Supplementary Table S19 reads for the source settings, the share of solves at the cap
+  and the logged compliance.
+- README: the control section (§5.11) rewritten from the rerun, without the causal claim;
+  the optimization runs are stated to use a fixed V-cycle; the replay and rerun commands
+  added (§5.3); Krylov-basis memory given in GB with GiB in brackets (7.7 GB is 7.2 GiB);
+  Supplementary Table numbers shifted by one from S5 on, because the revised supplement
+  inserts a new Table S5. The same renumbering is applied to `MANIFEST.csv`.
+- Figure scripts: larger annotation text in the optimized-design gallery
+  (`make_paper5_v3_figures.py`, Supplementary Fig. S5) and a wider right margin in
+  `make_paper5_srep_conditioning.py` (Supplementary Fig. S6).
+- `CITATION.cff`: version 2.3.1; the editorial note about updating fields after
+  publication removed.
+
+151 analysis tables in total; every hash in `MANIFEST.csv` verifies.
+
 ## Version 2.3.0 — 2026-10-31
 
 Aligned with the revised manuscript *Iterative solvers in GPU multigrid topology

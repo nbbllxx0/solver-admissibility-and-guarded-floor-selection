@@ -204,6 +204,7 @@ def main() -> None:
     b_norm = float(cp.linalg.norm(F_free_gpu))
     summary_rows = []
     history_rows = []
+    attempt_rows = []
     print(
         "seed,p,r50,r100,trigger,recommended_rho_min,solve_converged,solver_reported_converged,"
         "solve_iters,solve_final_rel_residual,attempted_rho_mins",
@@ -337,6 +338,32 @@ def main() -> None:
                         history=candidate_history,
                     )
                     solve_history.append((candidate_rho_min, candidate_history))
+                    # Per-attempt record: the solver's own flag next to the recomputed residual.
+                    # A flagged stop whose last estimate is above tol is a Krylov breakdown.
+                    final_estimate = candidate_history[-1] if candidate_history else float("nan")
+                    if not candidate_solver_reported_converged:
+                        stop_reason = "iteration_cap"
+                    elif final_estimate <= args.tol:
+                        stop_reason = "tolerance"
+                    else:
+                        stop_reason = "breakdown"
+                    attempt_rows.append(
+                        {
+                            "seed": seed,
+                            "solid_probability": probability,
+                            "attempt": len(attempted_rho_mins),
+                            "rho_min": candidate_rho_min,
+                            "iters": candidate_iters,
+                            "solver_reported_converged": int(candidate_solver_reported_converged),
+                            "stop_reason": stop_reason,
+                            "final_estimate": final_estimate,
+                            "true_rel_residual": candidate_final,
+                            "true_converged": int(candidate_true_converged),
+                            "false_acceptance": int(
+                                candidate_solver_reported_converged and not candidate_true_converged
+                            ),
+                        }
+                    )
                     recommended_rho_min = candidate_rho_min
                     solve_iters = candidate_iters
                     solve_converged = candidate_true_converged
@@ -511,8 +538,15 @@ def main() -> None:
         history_rows,
         ["seed", "solid_probability", "phase", "rho_min", "iter", "rel_residual"],
     )
+    _write_csv(
+        out_dir / "prospective_attempts.csv",
+        attempt_rows,
+        ["seed", "solid_probability", "attempt", "rho_min", "iters", "solver_reported_converged",
+         "stop_reason", "final_estimate", "true_rel_residual", "true_converged", "false_acceptance"],
+    )
     print(f"Wrote {out_dir / 'prospective_summary.csv'}", flush=True)
     print(f"Wrote {out_dir / 'prospective_history.csv'}", flush=True)
+    print(f"Wrote {out_dir / 'prospective_attempts.csv'}", flush=True)
 
 
 if __name__ == "__main__":

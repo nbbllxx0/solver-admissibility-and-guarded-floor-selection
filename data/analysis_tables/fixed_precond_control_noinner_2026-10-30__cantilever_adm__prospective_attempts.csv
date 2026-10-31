@@ -1,0 +1,2 @@
+seed,solid_probability,attempt,rho_min,iters,solver_reported_converged,stop_reason,final_estimate,true_rel_residual,true_converged,false_acceptance
+43,0.35,1,1e-12,129,1,tolerance,9.21616933469005e-07,9.216169308329972e-07,1,0

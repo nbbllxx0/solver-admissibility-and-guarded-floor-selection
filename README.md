@@ -10,11 +10,12 @@ Code release for:
 stiff by a positive density floor. A positive floor is usually treated as sufficient to
 make the constrained stiffness operator solvable. It is not: for a given matrix-free
 geometric-multigrid FGMRES hierarchy, tolerance, and iteration budget, a mathematically
-positive floor can be *solver-inadmissible*. Worse, the failure is not always visible — on
-4 of 102 held-out states the outer Krylov iteration set its convergence flag while the
-recomputed true residual was up to 49.5× the requested tolerance, and inside an
-optimization loop the same failure produced a compliance history oscillating between 0.48
-and 4.50 with no error raised. This repository implements the solver stack, the guarded
+positive floor can be *solver-inadmissible*. Worse, the failure is not always visible — in
+a 300-iteration replay of 102 held-out states the outer Krylov iteration set its convergence
+flag on 9 states whose recomputed true residual exceeded the requested tolerance (up to 56×
+in a rerun that logged every attempt), and in optimization runs with a fixed V-cycle it
+accepted 3 of 320 unconverged solves, while capped solves produced a compliance history
+oscillating between 0.48 and 4.50 with no error raised. This repository implements the solver stack, the guarded
 floor-selection policy that fixes it (probe → preserve/escalate rule → floor ladder →
 **recomputed-residual acceptance guard**), and every experiment reported in the paper.
 
@@ -76,7 +77,7 @@ hierarchy is behaving differently from the reported stack — check §3.
 The stack was tested on two platforms; a third setup is listed below the table.
 On the six-state FP64 replication subset, both platforms selected the same floor
 for every state. Five iteration counts agree exactly and the sixth differs by one
-iteration (Supplementary Table S15). Wall times are not compared across setups;
+iteration (Supplementary Table S16). Wall times are not compared across setups;
 the policy-cost timings come from Platform A.
 
 | | Platform A (paper) | Platform B (replication) |
@@ -85,11 +86,11 @@ the policy-cost timings come from Platform A.
 | CuPy | 13.6.0 (`cupy-cuda12x`) | 14.0.1 (`cupy-cuda13x`) |
 | CUDA runtime | 12.x | 13.0 |
 | Python | 3.9.23 | 3.10.18 |
-| Covers | primary evidence and the policy-cost timings | six-state replication, precision ablation, fixed-preconditioner control, optimized-density perturbation, 1M-element case |
+| Covers | primary evidence and the policy-cost timings | six-state replication, precision ablation, fixed-V-cycle control, optimized-density perturbation, 1M-element case |
 
 A third setup, the Platform A software (Python 3.9.23, CuPy 13.6.0) on the RTX 5090, ran the
-standard-floor optimization runs of Fig. 3 (§5.8) and the per-seed rerun of the held-out
-suite (§5.3). The two environment files below pin newer Python versions than the ones
+standard-floor optimization runs of Fig. 3 (§5.8), the per-seed rerun of the held-out
+suite and the rerun of the nine replay false acceptances (§5.3). The two environment files below pin newer Python versions than the ones
 listed here.
 
 **Platform B notes.** Two adjustments are needed on CuPy 14 / CUDA 13; the second is
@@ -113,9 +114,9 @@ dominates the footprint at large sizes:
 
 | Elements | free DOFs | basis at restart 300 | basis at restart 100 |
 | --- | --- | --- | --- |
-| 512,000 | 1.60 M | 7.7 GiB | 2.6 GiB |
-| 514,500 | 1.62 M | 7.8 GiB | 2.6 GiB |
-| 1,000,000 | 3.11 M | 14.9 GiB | 5.0 GiB |
+| 512,000 | 1.60 M | 7.7 GB (7.2 GiB) | 2.6 GB (2.4 GiB) |
+| 514,500 | 1.62 M | 7.8 GB (7.2 GiB) | 2.6 GB (2.4 GiB) |
+| 1,000,000 | 3.11 M | 14.9 GB (13.9 GiB) | 5.0 GB (4.6 GiB) |
 
 Peak post-solve device memory observed: ≈3.8 GiB for the 40.5k–64k held-out policy matrix
 and ≈18–23 GiB for the ~500k optimized-density cases. A 24 GiB card therefore covers every
@@ -209,7 +210,7 @@ python experiments/phase5/validate_gmg_solver_floor_detector.py \
 The 16 development states. These are the *only* states used to choose the rule
 thresholds; everything below is held out.
 
-### 5.3 Held-out suite — *Figs. 2 and 5a, Supplementary Tables S10 and S14* (the main evaluation)
+### 5.3 Held-out suite — *Figs. 2 and 5a, Supplementary Tables S11 and S15* (the main evaluation)
 
 72 cantilever states (8 seeds × 9 solid probabilities) and 30 bridge states
 (5 seeds × 6 probabilities) under the guarded policy. The paper's timing run solved all
@@ -278,11 +279,39 @@ python experiments/phase5/run_gmg_floor_detector_prospective.py \
 ```
 
 Repeat per seed and geometry; directory names must match the list in
-`summarize_review_experiments.py`. ≈126 s/state, ≈3.5 hours total. Fixed-floor and
+`summarize_review_experiments.py`. ≈126 s/state, ≈3.5 hours total. Across the 102 states,
+expect 69 original-floor solves that reach the 300-iteration cap, 24 that are accepted, and
+9 (7 cantilever, 2 bridge) that stop with the convergence flag set and are rejected by the
+recomputed residual; the deposited copies are
+`data/analysis_tables/heldout_full_true_labels_*__prospective_history.csv`
+(Supplementary Table S5).
+
+The driver now also writes `prospective_attempts.csv`, one row per floor attempt with the
+solver's flag, the stop reason (`tolerance`, `iteration_cap` or `breakdown`), the last
+residual estimate and the recomputed residual. The paper's rerun of the nine replay false
+acceptances used it (RTX 5090, Python 3.9.23, CuPy 13.6.0):
+
+```bash
+OUT=experiments/phase5/results/replay_false_acceptance_rerun_2026-10-30
+for SPEC in "cantilever_gpu_medium 43 0.25 cantilever_s43" "cantilever_gpu_medium 47 0.35 cantilever_s47" \
+            "cantilever_gpu_medium 59 0.25,0.30 cantilever_s59" "cantilever_gpu_medium 71 0.25,0.30,0.35 cantilever_s71" \
+            "bridge_gpu_medium 59 0.30,0.35 bridge_s59"; do
+  set -- $SPEC
+  python experiments/phase5/run_gmg_floor_detector_prospective.py \
+    --preset $1 --seeds $2 --probabilities $3 \
+    --high-residual-threshold 1e99 --plateau-residual-threshold 1e99 \
+    --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+    --out-dir $OUT/$4
+done
+```
+
+Expect the seven cantilever states to stop again with the flag set and a recomputed
+residual of 1.4–56 times the tolerance; on that GPU the two bridge states reached the cap
+instead. Fixed-floor and
 severity-jump baselines on the same matrix are queued by
 `run_observed_queue.py --task fixed_floor_baselines` and `--task severity_jump_baselines`.
 
-### 5.4 Bridge ladder and fine sweep — *Fig. 6a–c, Supplementary Table S16*
+### 5.4 Bridge ladder and fine sweep — *Fig. 6a–c, Supplementary Table S17*
 
 ```bash
 python experiments/phase5/run_gmg_floor_detector_prospective.py \
@@ -299,7 +328,7 @@ python experiments/phase5/run_gmg_floor_detector_prospective.py \
 The fine sweep shows the reported ladder is conservative but not arbitrary: 4 of 6
 states need `1e-2`, one needs `1e-3`, one is admissible at `1e-6`.
 
-### 5.5 Optimized-density transfer — *Supplementary Table S13 and Fig. S5* (needs the density bundle)
+### 5.5 Optimized-density transfer — *Supplementary Table S14 and Fig. S5* (needs the density bundle)
 
 ```bash
 python experiments/phase5/run_gmg_floor_detector_density_field.py \
@@ -316,7 +345,7 @@ Preset per artifact: `C64_MF → cantilever_gpu_medium`, `C216_MF → cantilever
 reported fields preserve `1e-12`; the large bridge field is connected under the `rho ≥ 0.5`
 support diagnostic and still requires `1e-2`.
 
-### 5.6 What a fixed raised floor changes — *Fig. 4, Supplementary Table S12*
+### 5.6 What a fixed raised floor changes — *Fig. 4, Supplementary Table S13*
 
 Compliance and timing controls, then the two perturbation studies:
 
@@ -341,7 +370,7 @@ between them is the point: severe random states move a great deal, optimized des
 much less. `bash experiments/phase5/run_scale_and_perturbation_block.sh` runs the
 optimized-design study followed by the million-element scale check.
 
-### 5.7 Robustness — *Fig. 6d, Supplementary Figs. S2 and S4, Supplementary Table S15*
+### 5.7 Robustness — *Fig. 6d, Supplementary Figs. S2 and S4, Supplementary Table S16*
 
 ```bash
 python experiments/phase5/analyze_gmg_threshold_sensitivity.py \
@@ -369,9 +398,9 @@ python experiments/phase5/run_gmg_floor_detector_prospective.py \
 geometries in sequence. Running the FP64 block on a second GPU/CuPy/CUDA combination is
 also how the platform replication in the paper was produced.
 
-### 5.8 Optimization trajectories — *Fig. 3, Supplementary Fig. S3, Supplementary Tables S7 and S8*
+### 5.8 Optimization trajectories — *Fig. 3, Supplementary Fig. S3, Supplementary Tables S8 and S9*
 
-Fig. 3 and Supplementary Table S8 come from 40-iteration fixed-floor runs at four floors
+Fig. 3 and Supplementary Table S9 come from 40-iteration fixed-floor runs at four floors
 that log the solver's convergence flag and the recomputed residual after every state solve
 (RTX 5090, Python 3.9.23, CuPy 13.6.0):
 
@@ -384,8 +413,11 @@ done
 ```
 
 Each `trajectory_summary.csv` row reports `solves_flagged_converged`, `false_acceptances`
-(flag set, recomputed residual above `--tol`) and `solves_at_cap`. The earlier reference
-runs (Supplementary Fig. S3 and Table S7) use the commands below.
+(flag set, recomputed residual above `--tol`) and `solves_at_cap`. The optimization driver
+builds the multigrid preconditioner without the adaptive components (no coarse-correction
+line search, no inner Krylov wrapper, no fine-level correction), so every optimization run
+uses a fixed linear V-cycle, and each solve starts from the previous displacement. The earlier reference
+runs (Supplementary Fig. S3 and Table S8) use the commands below.
 
 ```bash
 # fixed-floor controls, no acceptance test (the unguarded baseline)
@@ -451,35 +483,49 @@ This is the source of the conditioning figure (Supplementary Fig. S6), including
 hierarchy-independent screening rule `rho_min >~ c(rho) * eps / tau` (Supplementary Eq. S1);
 it is a diagnostic of the operator, and no result of it is used to accept a solve.
 
-### 5.11 Fixed-preconditioner control — the attribution check (Supplementary Table S9)
+### 5.11 Fixed-V-cycle control on frozen states (Supplementary Table S10)
 
-Disabling both adaptive preconditioner components leaves a fixed linear V-cycle (the
-flexible outer method then coincides with right-preconditioned GMRES). Rerunning the four
-false-acceptance states, their neighbours, one admissible state, and two severe bridge
-states under the full guarded protocol:
+The frozen-state solver has three components that make its preconditioner change between
+iterations: the coarse-correction line search, the inner Krylov wrapper (10 inner FGMRES
+steps around the V-cycle, `--inner-krylov-steps`, default 10) and the fine-level
+correction. Disabling all three leaves a fixed linear V-cycle (the flexible outer method
+then coincides with right-preconditioned GMRES). The control reruns the four states that
+the probe sent to the original floor, two neighbours, one admissible state and two severe
+bridge states with the escalation rule switched off (replication configuration: RTX 5090,
+Python 3.10.18, CuPy 14.0.1, `CUPY_ACCELERATORS=""`):
 
 ```bash
+OUT=experiments/phase5/results/fixed_precond_control_noinner_2026-10-30
 python experiments/phase5/run_gmg_floor_detector_prospective.py \
   --preset cantilever_gpu_medium --seeds 47,59,71 --probabilities 0.30,0.35 \
   --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
   --high-residual-threshold 10 --plateau-residual-threshold 10 \
   --coarse-correction-policy none --root-local-correction-mode none \
+  --inner-krylov-steps 0 --inner-krylov-restart 10 \
   --stack-variant fixed_linear_preconditioner \
-  --out-dir experiments/phase5/results/fixed_precond_control_cantilever
-# repeat with --seeds 43 --probabilities 0.35, and with
-# --preset bridge_gpu_medium --seeds 43 --probabilities 0.10,0.20
+  --out-dir $OUT/cantilever
+# repeat with --seeds 43 --probabilities 0.35 (--out-dir $OUT/cantilever_adm), and with
+# --preset bridge_gpu_medium --seeds 43 --probabilities 0.10,0.20 (--out-dir $OUT/bridge)
 ```
 
 The thresholds of `10` disable the escalation rule, so the original floor is always
-attempted to exhaustion. Expected: **no false acceptance in any of the 18 floor
-attempts** — every rejected attempt returns with its projected estimate 3–6 orders of
-magnitude above tolerance, so every failure is visible. The four false-acceptance states
-fail visibly at `1e-12` and are accepted at `1e-3` in 15–42 iterations; the admissible
-state needs 130 iterations instead of the full stack's 30; the two severe bridge states
-fail at every tested floor although the full stack accepts them at `1e-2`. The
-stopping-estimate drift is therefore tied to the iterate-dependent preconditioner, and
-the components that make severe states solvable are the ones that make the flag
-untrustworthy.
+attempted to exhaustion. Expected: no false acceptance in any of the 18 floor attempts;
+every rejected attempt reaches the cap with its projected estimate 6.1 to about 10⁶ times
+the tolerance. The four probe-preserved states fail at `1e-12` and are accepted at `1e-3`
+in 51–69 iterations; the admissible state needs 129 iterations instead of the full stack's
+30; the two severe bridge states fail at every tested floor although the full stack
+accepts them at `1e-2`. This does not show that a fixed preconditioner prevents false
+acceptance: on the four states the fixed solver never brings its estimate below the
+tolerance at `1e-12`, and the optimization runs of §5.8, which use a fixed V-cycle,
+accept 3 unconverged solves.
+
+With the inner wrapper left on (`--inner-krylov-steps 10`, the default; deposited as
+`fixed_precond_control_inner10_check_2026-10-30`), the two bridge states stop at `1e-12`
+after 213 and 112 iterations by a Krylov breakdown with estimates 0.997 and 0.969. The
+solver reports a breakdown as convergence whatever the estimate, so both are flagged and
+both are rejected by the recomputed residual. The v2.3.0 deposit's
+`fixed_precond_control_*` tables came from this wrapper-on configuration and are kept for
+the record only.
 
 ---
 
