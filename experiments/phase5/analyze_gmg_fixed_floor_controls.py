@@ -8,6 +8,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def _read_rows(path: Path) -> list[dict]:
     with path.open(newline="", encoding="utf-8") as f:
@@ -126,7 +128,7 @@ def main() -> None:
     ax.set_ylabel("compliance change vs lowest tested floor (%)")
     ax.set_title("Always-high-floor controls change the physics even when solves converge")
     fig.tight_layout()
-    fig.savefig(out_dir / "fig_fixed_floor_compliance_shift.png", dpi=240, bbox_inches="tight")
+    fig.savefig(out_dir / "fig_fixed_floor_compliance_shift.png", dpi=240, bbox_inches="tight", metadata=NO_METADATA)
 
     print(f"Wrote {out_dir / 'fixed_floor_control_comparison.csv'}")
     print(f"Wrote {out_dir / 'fixed_floor_control_comparison_summary.csv'}")

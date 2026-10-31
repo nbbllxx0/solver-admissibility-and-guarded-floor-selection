@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def _read_rows(path: Path) -> list[dict]:
     with path.open(newline="", encoding="utf-8") as f:
@@ -133,7 +135,7 @@ def main() -> None:
     ax1.legend(loc="upper right", fontsize=8, frameon=True, framealpha=0.94)
 
     fig.tight_layout()
-    fig.savefig(out, dpi=240, bbox_inches="tight")
+    fig.savefig(out, dpi=240, bbox_inches="tight", metadata=NO_METADATA)
     print(f"Wrote {out}")
 
 

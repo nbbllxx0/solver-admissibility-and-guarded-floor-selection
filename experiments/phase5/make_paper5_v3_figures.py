@@ -26,12 +26,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Polygon, Rectangle
+from matplotlib.patches import Rectangle
 
 ROOT = Path(__file__).resolve().parents[2]
 RESULTS = ROOT / "experiments" / "phase5" / "results"
 REVIEW = RESULTS / "review_experiment_summary"
 OUT = Path(os.environ.get("PAPER5_FIGURE_OUT", str(ROOT / "figures" / "generated")))
+
 # Optional: a directory holding an already generated v1 figure set. When it is
 # present the two unchanged supplementary panels are copied from it; otherwise
 # they are regenerated from the v1 script.
@@ -81,58 +82,9 @@ def _panel(ax, letter, x=-0.02, y=1.06):
 
 
 def _save(fig, name):
-    fig.savefig(OUT / f"{name}.pdf", bbox_inches="tight")
+    fig.savefig(OUT / f"{name}.pdf", bbox_inches="tight", metadata={"Creator": None, "Producer": None, "CreationDate": None})
     plt.close(fig)
     print("wrote", name)
-
-
-def _box(ax, xy, w, h, text, fc, ec=None, fontsize=8.2, lw=1.2):
-    ax.add_patch(
-        FancyBboxPatch(xy, w, h, boxstyle="round,pad=0.02,rounding_size=0.04",
-                       fc=fc, ec=ec or C["ink"], lw=lw)
-    )
-    ax.text(xy[0] + w / 2, xy[1] + h / 2, text, ha="center", va="center", fontsize=fontsize)
-
-
-def _arrow(ax, start, end, color=None, ls="-"):
-    ax.add_patch(
-        FancyArrowPatch(start, end, arrowstyle="-|>", mutation_scale=11, lw=1.2,
-                        color=color or C["ink"], shrinkA=2, shrinkB=2, linestyle=ls)
-    )
-
-
-def _stage(ax, x0, x1, y0, h, title, sub, accent, *, emphasis=False, fill="#FFFFFF"):
-    """One flowchart stage: light box, coloured accent bar, title and subtitle."""
-    lw = 1.6 if emphasis else 1.0
-    ec = accent if emphasis else C["ink"]
-    ax.add_patch(Rectangle((x0, y0), x1 - x0, h, facecolor=fill, edgecolor=ec,
-                           lw=lw, zorder=2))
-    ax.add_patch(Rectangle((x0, y0), 1.6, h, facecolor=accent, edgecolor="none", zorder=3))
-    cx = (x0 + x1) / 2 + 0.8
-    ax.text(cx, y0 + h * 0.66, title, ha="center", va="center", fontsize=8.4,
-            fontweight="semibold", zorder=4)
-    if sub:
-        ax.text(cx, y0 + h * 0.30, sub, ha="center", va="center", fontsize=7.4,
-                color=C["gray"], zorder=4, linespacing=1.35)
-    return (x0, x1, y0, y0 + h)
-
-
-def _diamond(ax, cx, cy, hw, hh, text):
-    ax.add_patch(Polygon([(cx, cy + hh), (cx + hw, cy), (cx, cy - hh), (cx - hw, cy)],
-                         closed=True, facecolor="#FFFFFF", edgecolor=C["ink"], lw=1.0,
-                         zorder=2))
-    ax.text(cx, cy, text, ha="center", va="center", fontsize=8.0, zorder=4,
-            linespacing=1.3)
-
-
-def _elbow(ax, pts, color, ls="-"):
-    """Orthogonal polyline with a single arrowhead on the final segment."""
-    xs = [p[0] for p in pts]
-    ys = [p[1] for p in pts]
-    ax.plot(xs[:-1], ys[:-1], color=color, lw=1.2, ls=ls, solid_capstyle="butt", zorder=1)
-    ax.annotate("", xy=pts[-1], xytext=pts[-2],
-                arrowprops=dict(arrowstyle="-|>", color=color, lw=1.2, linestyle=ls,
-                                shrinkA=0, shrinkB=0), zorder=1)
 
 
 # --------------------------------------------------------------------------
@@ -247,9 +199,9 @@ def fig1_problem_setup() -> None:
 
 
 # --------------------------------------------------------------------------
-# Figure 1: policy schematic + the acceptance-guard evidence
+# Figure 2(b): the acceptance-guard evidence (the schematic panel (a) is not generated here)
 # --------------------------------------------------------------------------
-def fig2_policy_and_guard() -> None:
+def fig2b_guard_evidence() -> None:
     strict = RESULTS / "heldout_gmg_detector_cantilever_s41_71_strict_true_residual"
     summary = pd.read_csv(strict / "prospective_summary.csv")
     history = pd.read_csv(strict / "prospective_history.csv")
@@ -269,63 +221,9 @@ def fig2_policy_and_guard() -> None:
                  fallback=float(grow.solve_final_rel_residual))
         )
 
-    fig = plt.figure(figsize=(8.6, 6.6))
-    gs = fig.add_gridspec(2, 1, height_ratios=[1.12, 1.0], hspace=0.30)
-
-    # --- (a) policy flowchart
-    ax = fig.add_subplot(gs[0, 0])
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 48)
-    ax.axis("off")
-    _panel(ax, "a", x=0.0, y=0.95)
-
-    R1, R2, BH = 28.0, 4.0, 12.5          # row baselines and box height
-    CH_MID, CH_TOP, CH_BOT = 22.5, 45.0, 1.0   # routing channels
-    _stage(ax, 13, 34, R1, BH, "frozen density field", "$\\rho_0 = 10^{-12}$", "#C2CBCF")
-    _stage(ax, 41, 65, R1, BH, "probe",
-           "100 iterations at $\\rho_0$\n$r_{50},\\; r_{100}$", "#C2CBCF")
-    _stage(ax, 1, 22, R2, BH, "escalation ladder", "$10^{-3} \\rightarrow 10^{-2}$", C["r2"])
-    _stage(ax, 28, 51, R2, BH, "selected solve", "budget $k_{\\max} = 300$", C["r3"])
-    _stage(ax, 57, 79, R2, BH, "acceptance guard",
-           "$\\|f-Ku\\|/\\|f\\| \\leq \\tau$", C["bad"], emphasis=True)
-    _stage(ax, 85, 100, R2, BH, "accept", "floor and $u$", C["keep"], fill=C["keep"] + "22")
-    dx, dy, dhw, dhh = 80.0, R1 + BH / 2, 12.5, 7.0
-    _diamond(ax, dx, dy, dhw, dhh, "preserve or\nescalate?")
-
-    ym1 = R1 + BH / 2
-    ym2 = R2 + BH / 2
-    _arrow(ax, (34, ym1), (41, ym1))
-    _arrow(ax, (65, ym1), (dx - dhw, ym1))
-    _arrow(ax, (22, ym2), (28, ym2))
-    _arrow(ax, (51, ym2), (57, ym2))
-    _arrow(ax, (79, ym2), (85, ym2), color=C["keep"])
-
-    # keep branch: diamond -> selected solve
-    _elbow(ax, [(dx, dy - dhh), (dx, CH_MID), (39.5, CH_MID), (39.5, R2 + BH)], C["keep"])
-    ax.text(58, CH_MID + 1.0, "preserve: try $\\rho_0$ first", fontsize=7.8, color=C["keep"],
-            ha="center", va="bottom")
-
-    # raise branch: diamond -> ladder
-    _elbow(ax, [(dx, dy + dhh), (dx, CH_TOP), (7.5, CH_TOP), (7.5, R2 + BH)], C["r2"])
-    ax.text(43, CH_TOP + 1.2, "escalate: enter the ladder", fontsize=7.8, color=C["r2"],
-            ha="center", va="bottom")
-
-    # guard failure: guard -> ladder, retry at the next floor
-    _elbow(ax, [(68, R2), (68, CH_BOT), (11.5, CH_BOT), (11.5, R2)], C["bad"], ls=(0, (4, 2)))
-    ax.text(39.5, CH_BOT - 1.2, "guard fails: retry at the next floor", fontsize=7.8,
-            color=C["bad"], ha="center", va="top")
-    ax.text(82, ym2 + 1.6, "pass", fontsize=7.8, color=C["keep"], ha="center", va="bottom")
-
-    # terminal exit: the ladder can be exhausted (Algorithm 1, last line).
-    # Anchored at the right end of the ladder's top edge so the label sits in
-    # the clear band between the rows, right of the orange raise channel (x=7.5)
-    # and clear of the keep channel (y=22.5, x>=39.5).
-    _elbow(ax, [(18.0, R2 + BH), (18.0, R2 + BH + 4.5)], C["bad"], ls=(0, (4, 2)))
-    ax.text(18.0, R2 + BH + 5.1, "ladder exhausted:\nno admissible floor",
-            fontsize=7.4, color=C["bad"], ha="center", va="bottom", linespacing=1.3)
+    fig, ax = plt.subplots(figsize=(8.6, 3.1))
 
     # --- (b) guard evidence
-    ax = fig.add_subplot(gs[1, 0])
     _panel(ax, "b", x=-0.09)
     y = np.arange(len(rows))[::-1]
     for yi, r in zip(y, rows):
@@ -353,7 +251,7 @@ def fig2_policy_and_guard() -> None:
     ax.set_title("Reported converged; true residual did not", fontsize=9.6)
     ax.legend(frameon=False, loc="lower right", fontsize=7.6)
     ax.grid(axis="x", which="both", alpha=0.12)
-    _save(fig, "fig2_policy_and_guard")
+    _save(fig, "fig2b_guard_evidence")
 
 
 # --------------------------------------------------------------------------
@@ -902,17 +800,18 @@ def figS5_conditioning() -> None:
 
     ax = axes[1]
     _panel(ax, "b", x=-0.13)
-    for conv, color, lab in [(1, C["keep"], "reached $\\tau=10^{-6}$"),
-                             (0, C["bad"], "did not reach $\\tau$")]:
-        m = d.converged == conv
+    # classify on the residual itself: the CSV flag allows 1.05*tau
+    for conv, color, lab in [(True, C["keep"], "reached $\\tau$"),
+                             (False, C["bad"], "did not reach $\\tau$")]:
+        m = (d.rel_residual <= tau) == conv
         ax.scatter(d.loc[m, "kappa_times_eps"], d.loc[m, "rel_residual"], s=20,
                    color=color, edgecolor="white", lw=0.4, alpha=0.9,
                    label=f"{lab} ({int(m.sum())})")
     lim = np.array([1e-11, 1e2])
-    ax.plot(lim, lim, color=C["ink"], lw=0.9, ls="--")
-    # label sits low on the diagonal so it cannot meet the upper-left legend
-    ax.text(1.5e-8, 5e-7, "$\\eta=\\kappa\\varepsilon$", fontsize=7.2, rotation=34,
-            color=C["ink"])
+    # the reference diagonal is named in the legend rather than by a rotated
+    # inline label, so no text can meet the data or the tolerance guide lines
+    ax.plot(lim, lim, color=C["ink"], lw=0.9, ls="--",
+            label="$\\eta=\\kappa\\varepsilon$")
     # regression quoted in the text, drawn on the panel; the 27 solves at the
     # backward-stability floor (~3e-13, spread across all kappa*eps) are
     # excluded from the fit and annotated instead
@@ -924,7 +823,7 @@ def figS5_conditioning() -> None:
     fx = np.array([1e-10, 1e1])
     ax.plot(fx, 10 ** (slope * np.log10(fx) + icpt), color=C["gray"], lw=1.2, ls="-",
             alpha=0.9, zorder=2,
-            label=f"fit: slope {slope:.2f}, $r={rr:.2f}$")
+            label=f"fit  {slope:.2f}, $r={rr:.2f}$")
     ax.annotate(f"{int((~floor_mask).sum())} solves at the backward-\n"
                 "stability floor $\\approx 3\\times10^{-13}$",
                 xy=(3e-4, 8e-13), xytext=(1.5e-6, 3e-11), fontsize=6.8, color=C["gray"],
@@ -941,9 +840,11 @@ def figS5_conditioning() -> None:
     ax.set_title("Residuals against the indicator", fontsize=9.0)
     # upper left is point-free; an opaque frame keeps the reference diagonal
     # from striking through the legend text
-    ax.legend(fontsize=7.0, loc="upper left", frameon=True, framealpha=1.0,
-              edgecolor="none", facecolor="white", borderpad=0.4,
-              labelspacing=0.35)
+    # kept narrow: at four entries a wider box would sit over the fit line and
+    # the upper-right failures
+    ax.legend(fontsize=6.4, loc="upper left", frameon=True, framealpha=1.0,
+              edgecolor="none", facecolor="white", borderpad=0.35,
+              labelspacing=0.3, handlelength=1.4, handletextpad=0.5)
     ax.grid(alpha=0.12, which="major")
 
     # (c) the screening rule rho_min >~ c*eps/tau, with c taken at the smallest
@@ -957,10 +858,12 @@ def figS5_conditioning() -> None:
     ax.scatter(screen, merged.critical_rho_min, s=34, color=C["keep"],
                edgecolor="white", lw=0.5, zorder=3)
     lim2 = np.array([3e-13, 3e-5])
-    ax.plot(lim2, lim2, color=C["ink"], lw=0.9, ls="--")
-    ax.text(6e-9, 2.4e-9, "screen = critical floor", fontsize=6.8, rotation=38,
-            color=C["ink"], va="bottom")
+    # as in panel (b), the diagonal is named in the legend, not inline
+    ax.plot(lim2, lim2, color=C["ink"], lw=0.9, ls="--",
+            label="screen = critical floor")
     ax.fill_between(lim2, lim2 * 0 + 1e-14, lim2, color=C["keep"], alpha=0.06, zorder=0)
+    ax.legend(fontsize=7.0, loc="upper left", frameon=True, framealpha=1.0,
+              edgecolor="none", facecolor="white", borderpad=0.4, handlelength=1.8)
     ax.text(0.97, 0.06, "screen conservative\non 18 of 18 fields",
             transform=ax.transAxes, fontsize=7.0, color=C["keep"], ha="right",
             va="bottom", linespacing=1.3)
@@ -1220,7 +1123,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     _style()
     fig1_problem_setup()
-    fig2_policy_and_guard()
+    fig2b_guard_evidence()
     fig3_silent_failure_in_loop()
     fig4_heldout_decision_map()
     fig5_policy_cost()

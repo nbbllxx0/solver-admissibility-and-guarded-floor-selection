@@ -45,6 +45,8 @@ from .local_agents import (
 )
 from .fem_gpu import detect_gpu_backend, resolve_backend_choice
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Builder helpers (same as TO3D workflow.py)
@@ -116,7 +118,7 @@ def _try_save_slices(rho, nelx, nely, nelz, outdir, tag, saved):
 
         plt.tight_layout()
         path = os.path.join(outdir, f"density_slices{tag}.png")
-        fig.savefig(path, dpi=150, bbox_inches="tight")
+        fig.savefig(path, dpi=150, bbox_inches="tight", metadata=NO_METADATA)
         plt.close(fig)
         saved["density_slices_png"] = path
     except Exception:
@@ -165,7 +167,7 @@ def _save_compliance_plot(compliance_hist, params_log, output_dir, tag=""):
 
         plt.tight_layout()
         path = os.path.join(output_dir, f"convergence{tag}.png")
-        fig.savefig(path, dpi=130, bbox_inches="tight")
+        fig.savefig(path, dpi=130, bbox_inches="tight", metadata=NO_METADATA)
         plt.close(fig)
         return path
     except Exception:

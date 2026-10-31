@@ -92,6 +92,7 @@ class SolverV4(SolverV2):
         self.last_outer_solver: str = ""
         self.last_multigrid_quality: dict = {}
         self.last_true_rel_residual: float = float("nan")
+        self.last_converged_flag: bool = False
         self.last_cg_history: list[float] = []
 
     def _ensure_matfree_components(self) -> None:
@@ -240,6 +241,7 @@ class SolverV4(SolverV2):
 
         self.last_cg_iters = n_outer
         self.last_cg_history = list(history)
+        self.last_converged_flag = bool(converged)
         b_norm = float(cp.linalg.norm(F_cg))
         self.last_true_rel_residual = float(cp.linalg.norm(F_cg - _Kop(U_free_gpu)) / max(b_norm, 1e-300))
         self.last_multigrid_quality = self._matfree_gmg.probe_quality(F_cg)

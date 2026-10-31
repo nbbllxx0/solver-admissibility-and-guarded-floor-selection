@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def _read_rows(path: Path) -> list[dict]:
     with path.open(newline="", encoding="utf-8") as f:
@@ -269,7 +271,7 @@ def main() -> None:
         bbox={"facecolor": "white", "edgecolor": "#cbd5e1", "alpha": 0.9},
     )
     fig_path = out_dir / "fig_gmg_solver_floor_detector.png"
-    fig.savefig(fig_path, dpi=240, bbox_inches="tight")
+    fig.savefig(fig_path, dpi=240, bbox_inches="tight", metadata=NO_METADATA)
 
     print(
         f"true_raise={counts['true_raise']}, true_keep={counts['true_keep']}, "

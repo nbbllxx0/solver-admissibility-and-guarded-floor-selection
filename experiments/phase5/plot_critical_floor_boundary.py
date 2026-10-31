@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -49,7 +51,7 @@ def main() -> None:
     ax.set_ylabel("minimal rho_min for direct residual <= 1e-6")
     ax.set_title("Admissible void floor decreases sharply across the sparse-field transition")
     ax.legend(loc="upper right", fontsize=8, frameon=True, framealpha=0.94)
-    fig.savefig(out, dpi=240, bbox_inches="tight")
+    fig.savefig(out, dpi=240, bbox_inches="tight", metadata=NO_METADATA)
     print(f"Wrote {out}")
 
 

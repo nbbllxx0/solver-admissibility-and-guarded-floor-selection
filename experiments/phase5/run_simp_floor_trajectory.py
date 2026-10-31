@@ -396,6 +396,14 @@ def _run_case(
         "selected_floor_counts": _floor_counts(progress_rows),
         "fallback_events": sum(int(row.get("policy_fallback_used", 0) or 0) for row in progress_rows),
         "max_true_rel_residual": _max_float(progress_rows, "solver_true_rel_residual"),
+        "solves_flagged_converged": sum(int(row.get("solver_converged_flag", 0) or 0) for row in progress_rows),
+        "false_acceptances": sum(
+            1
+            for row in progress_rows
+            if int(row.get("solver_converged_flag", 0) or 0)
+            and float(row.get("solver_true_rel_residual", float("nan"))) > args.tol
+        ),
+        "solves_at_cap": sum(1 for row in progress_rows if not int(row.get("solver_converged_flag", 0) or 0)),
         "mean_policy_probe_r50": _mean_float(progress_rows, "policy_probe_r50"),
         "error": error,
     }

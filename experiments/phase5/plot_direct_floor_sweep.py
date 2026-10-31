@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -58,7 +60,7 @@ def main() -> None:
     ax1.set_xlabel("void stiffness floor rho_min")
     ax0.set_title("Below-transition residual loss is controlled by the void stiffness floor")
     ax0.legend(loc="lower left", fontsize=8, frameon=True, framealpha=0.94)
-    fig.savefig(out, dpi=240, bbox_inches="tight")
+    fig.savefig(out, dpi=240, bbox_inches="tight", metadata=NO_METADATA)
     print(f"Wrote {out}")
 
 

@@ -3,8 +3,8 @@
 Code release for:
 
 > Yang, S., Wang, J., and Wang, Y. (2026).
-> *When a positive SIMP density floor is not enough: solver admissibility and guarded
-> floor selection in matrix-free 3D topology optimization.*
+> *Iterative solvers in GPU multigrid topology optimization can report false
+> convergence, and a recomputed residual catches it.*
 
 **The finding in one paragraph.** In ersatz-material SIMP, void elements are kept weakly
 stiff by a positive density floor. A positive floor is usually treated as sufficient to
@@ -73,17 +73,24 @@ hierarchy is behaving differently from the reported stack — check §3.
 
 ## 3. Verified platforms
 
-The stack has been run end to end on two platforms. Convergence decisions, selected
-floors, and iteration counts agree between them; wall times do not, and only the first
-platform's timings appear in the paper.
+The stack was tested on two platforms; a third setup is listed below the table.
+On the six-state FP64 replication subset, both platforms selected the same floor
+for every state. Five iteration counts agree exactly and the sixth differs by one
+iteration (Supplementary Table S15). Wall times are not compared across setups;
+the policy-cost timings come from Platform A.
 
 | | Platform A (paper) | Platform B (replication) |
 | --- | --- | --- |
-| GPU | NVIDIA GeForce RTX 4090, 24 GiB (SM 8.9) | NVIDIA GeForce RTX 5090, 32 GiB (SM 12.0) |
+| GPU | NVIDIA GeForce RTX 4090, nominal 24 GB (compute capability 8.9) | NVIDIA GeForce RTX 5090, nominal 32 GB (compute capability 12.0) |
 | CuPy | 13.6.0 (`cupy-cuda12x`) | 14.0.1 (`cupy-cuda13x`) |
 | CUDA runtime | 12.x | 13.0 |
-| Python | 3.10.18 | 3.11 |
-| Covers | all reported results | mechanism matrix, precision ablation, optimized-density perturbation, 1M-element case |
+| Python | 3.9.23 | 3.10.18 |
+| Covers | primary evidence and the policy-cost timings | six-state replication, precision ablation, fixed-preconditioner control, optimized-density perturbation, 1M-element case |
+
+A third setup, the Platform A software (Python 3.9.23, CuPy 13.6.0) on the RTX 5090, ran the
+standard-floor optimization runs of Fig. 3 (§5.8) and the per-seed rerun of the held-out
+suite (§5.3). The two environment files below pin newer Python versions than the ones
+listed here.
 
 **Platform B notes.** Two adjustments are needed on CuPy 14 / CUDA 13; the second is
 already handled in the code:
@@ -96,8 +103,9 @@ already handled in the code:
 2. The fused matvec kernels compile with `-std=c++17` on CuPy ≥ 14 and `-std=c++14` on
    CuPy 13; `src/gpu_fem/cuda_fused_matvec.py` selects this from the installed version.
 
-A `cupy-cuda12x` wheel will not run on Blackwell (SM 12.0) — it raises
-`CUDA_ERROR_NO_BINARY_FOR_GPU`. Install `cupy-cuda13x` for those GPUs.
+A `cupy-cuda12x` wheel can raise `CUDA_ERROR_NO_BINARY_FOR_GPU` on Blackwell (SM 12.0);
+install `cupy-cuda13x` if it does. The third setup above
+ran `cupy-cuda12x` 13.6.0 with CUDA runtime 12.9 on the RTX 5090 without this error.
 
 **Memory.** Flexible GMRES stores two Krylov bases (V and Z). With the reported
 `--restart 300` in FP64 that is \(2\times300\times n_{\mathrm{free}}\times8\) bytes, which
@@ -146,8 +154,8 @@ data/optimized_density_inputs/ the nine stored density fields the transfer study
                                with their own checksummed MANIFEST.csv
 
 ci/smoke_check.py              syntax check over all released Python files
-environment.yml                pinned environment (Platform A)
-environment-blackwell.yml      pinned environment (Platform B: CuPy 14 / CUDA 13)
+environment.yml                pinned environment (Platform A CuPy, newer Python)
+environment-blackwell.yml      pinned environment (Platform B CuPy 14 / CUDA 13, newer Python)
 ```
 
 ### Where the method lives
@@ -171,7 +179,7 @@ recomputed-residual verdict. Rows where they disagree are the false acceptances 
 Run all commands from the repository root; add `--help` to any driver for its full flag
 list. Runtimes are Platform A.
 
-### 5.1 Reduced direct floor atlas — *Fig. S1*
+### 5.1 Reduced direct floor atlas — *inputs to Supplementary Fig. S6*
 
 ```bash
 python experiments/phase5/run_direct_floor_atlas.py \
@@ -186,9 +194,10 @@ python experiments/phase5/validate_admissibility_detector.py \
 ```
 
 Reduced 24×12×6 assembled/direct solves; establishes that a floor boundary exists before
-the full hierarchy is involved. Minutes, low memory.
+the full hierarchy is involved. Minutes, low memory. The critical floors feed
+Supplementary Fig. S6; the detector validation belongs to the earlier preprint version.
 
-### 5.2 Retrospective GMG labels — *thresholds are fixed here*
+### 5.2 Retrospective GMG labels — *thresholds are fixed here (Supplementary Fig. S4)*
 
 ```bash
 python experiments/phase5/validate_gmg_solver_floor_detector.py \
@@ -200,35 +209,61 @@ python experiments/phase5/validate_gmg_solver_floor_detector.py \
 The 16 development states. These are the *only* states used to choose the rule
 thresholds; everything below is held out.
 
-### 5.3 Held-out suite — *Fig. 5* (the main evaluation)
+### 5.3 Held-out suite — *Figs. 2 and 5a, Supplementary Tables S10 and S14* (the main evaluation)
 
 72 cantilever states (8 seeds × 9 solid probabilities) and 30 bridge states
-(5 seeds × 6 probabilities) under the guarded policy:
+(5 seeds × 6 probabilities) under the guarded policy. The paper's timing run solved all
+seeds of a geometry in one process:
 
 ```bash
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset cantilever_gpu_medium --seeds 41,43,47,53,59,61,67,71 \
+  --probabilities 0.08,0.10,0.12,0.15,0.18,0.20,0.25,0.30,0.35 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+  --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
+  --out-dir experiments/phase5/results/heldout_gmg_detector_cantilever_s41_71_guarded_true_residual
+
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset bridge_gpu_medium --seeds 41,43,47,53,59 \
+  --probabilities 0.10,0.15,0.20,0.25,0.30,0.35 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+  --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
+  --out-dir experiments/phase5/results/heldout_gmg_detector_bridge_s41_59_guarded_true_residual
+```
+
+≈40 s/state on the RTX 4090, ≈70 minutes total. Expect 102/102 `solve_converged=1`,
+24 states preserving `1e-12`, 78 escalated to `1e-3`, and 4 cantilever rows with
+`solver_reported_converged=1, solve_converged=0` at the original floor — the false
+acceptances.
+
+The paper also reports a rerun with one process per seed. Each seed needs its own
+`--out-dir`, because the script overwrites `prospective_summary.csv`:
+
+```bash
+OUT=experiments/phase5/results/heldout_guarded_perseed_2026-10-30
 for SEED in 41 43 47 53 59 61 67 71; do
   python experiments/phase5/run_gmg_floor_detector_prospective.py \
     --preset cantilever_gpu_medium --seeds $SEED \
     --probabilities 0.08,0.10,0.12,0.15,0.18,0.20,0.25,0.30,0.35 \
     --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
     --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
-    --out-dir experiments/phase5/results/heldout_gmg_detector_cantilever_s41_71_guarded_true_residual
+    --out-dir $OUT/cantilever_s$SEED
 done
-
 for SEED in 41 43 47 53 59; do
   python experiments/phase5/run_gmg_floor_detector_prospective.py \
     --preset bridge_gpu_medium --seeds $SEED \
     --probabilities 0.10,0.15,0.20,0.25,0.30,0.35 \
     --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
     --high-residual-threshold 1e-2 --plateau-residual-threshold 1e-4 \
-    --out-dir experiments/phase5/results/heldout_gmg_detector_bridge_s41_59_guarded_true_residual
+    --out-dir $OUT/bridge_s$SEED
 done
 ```
 
-≈40 s/state, ≈70 minutes total. Expect 102/102 `solve_converged=1`, 24 states preserving
-`1e-12`, 78 escalated to `1e-3`, and 4 cantilever rows with
-`solver_reported_converged=1, solve_converged=0` at the original floor — the false
-acceptances.
+Expect the same convergence, preserves and false acceptances, but six bridge states
+(seeds 43 and 47, q = 0.10–0.20) pass at `1e-2` instead of `1e-3`: 72 states at `1e-3`
+and 6 at `1e-2`. The forced full-budget audit below gives the same six. Whether these
+severe states pass at `1e-3` or `1e-2` depends on how the solves are grouped into
+processes; every accepted solve meets the recomputed tolerance either way.
 
 **Reference classifications** come from a separate forced full-budget audit (thresholds disabled, so the
 original floor is always attempted to exhaustion):
@@ -247,7 +282,7 @@ Repeat per seed and geometry; directory names must match the list in
 severity-jump baselines on the same matrix are queued by
 `run_observed_queue.py --task fixed_floor_baselines` and `--task severity_jump_baselines`.
 
-### 5.4 Bridge ladder and fine sweep — *Fig. 8a–c*
+### 5.4 Bridge ladder and fine sweep — *Fig. 6a–c, Supplementary Table S16*
 
 ```bash
 python experiments/phase5/run_gmg_floor_detector_prospective.py \
@@ -264,7 +299,7 @@ python experiments/phase5/run_gmg_floor_detector_prospective.py \
 The fine sweep shows the reported ladder is conservative but not arbitrary: 4 of 6
 states need `1e-2`, one needs `1e-3`, one is admissible at `1e-6`.
 
-### 5.5 Optimized-density transfer — *Fig. S3* (needs the density bundle)
+### 5.5 Optimized-density transfer — *Supplementary Table S13 and Fig. S5* (needs the density bundle)
 
 ```bash
 python experiments/phase5/run_gmg_floor_detector_density_field.py \
@@ -281,7 +316,7 @@ Preset per artifact: `C64_MF → cantilever_gpu_medium`, `C216_MF → cantilever
 reported fields preserve `1e-12`; the large bridge field is connected under the `rho ≥ 0.5`
 support diagnostic and still requires `1e-2`.
 
-### 5.6 What a fixed raised floor changes — *Fig. 7*
+### 5.6 What a fixed raised floor changes — *Fig. 4, Supplementary Table S12*
 
 Compliance and timing controls, then the two perturbation studies:
 
@@ -306,7 +341,7 @@ between them is the point: severe random states move a great deal, optimized des
 much less. `bash experiments/phase5/run_scale_and_perturbation_block.sh` runs the
 optimized-design study followed by the million-element scale check.
 
-### 5.7 Robustness — *Fig. 8d, Figs. S2 and S4*
+### 5.7 Robustness — *Fig. 6d, Supplementary Figs. S2 and S4, Supplementary Table S15*
 
 ```bash
 python experiments/phase5/analyze_gmg_threshold_sensitivity.py \
@@ -334,7 +369,23 @@ python experiments/phase5/run_gmg_floor_detector_prospective.py \
 geometries in sequence. Running the FP64 block on a second GPU/CuPy/CUDA combination is
 also how the platform replication in the paper was produced.
 
-### 5.8 Optimization trajectories — *Fig. 3*
+### 5.8 Optimization trajectories — *Fig. 3, Supplementary Fig. S3, Supplementary Tables S7 and S8*
+
+Fig. 3 and Supplementary Table S8 come from 40-iteration fixed-floor runs at four floors
+that log the solver's convergence flag and the recomputed residual after every state solve
+(RTX 5090, Python 3.9.23, CuPy 13.6.0):
+
+```bash
+for CASE in cantilever bridge; do
+  python experiments/phase5/run_simp_floor_trajectory.py \
+    --presets ${CASE}_gpu_medium --rho-mins 1e-12,1e-9,1e-6,1e-3 --iters 40 \
+    --allow-failed-cases --out-dir experiments/phase5/results/e1lite_2026-10-30/$CASE
+done
+```
+
+Each `trajectory_summary.csv` row reports `solves_flagged_converged`, `false_acceptances`
+(flag set, recomputed residual above `--tol`) and `solves_at_cap`. The earlier reference
+runs (Supplementary Fig. S3 and Table S7) use the commands below.
 
 ```bash
 # fixed-floor controls, no acceptance test (the unguarded baseline)
@@ -349,7 +400,7 @@ python experiments/phase5/run_simp_floor_trajectory.py \
 ```
 
 `--policy fixed_floor` (the default) sweeps `--rho-mins` with no acceptance test;
-`--policy guarded_adaptive` runs Algorithm 1 at every outer iteration and records
+`--policy guarded_adaptive` runs the guarded floor selection (Methods) at every outer iteration and records
 `solver_true_rel_residual`, `selected_rho_min`, and `policy_trigger` per iteration.
 
 The fixed-`1e-12` cantilever control is the one to look at: from outer iteration 19 its
@@ -363,12 +414,27 @@ the continuation step.
 
 ```bash
 python experiments/phase5/summarize_review_experiments.py   # no arguments; fixed paths
-python experiments/phase5/make_paper5_v3_figures.py         # manuscript figure set
+python experiments/phase5/make_paper5_srep_figures.py       # main-text Figs. 2-6
+python experiments/phase5/make_paper5_v3_figures.py         # Supplementary Figs. S1-S6
+python experiments/phase5/make_paper5_srep_conditioning.py --output figures/generated/figS5_direct_conditioning.pdf
 ```
 
 `summarize_review_experiments.py` consolidates completed result directories into
 `experiments/phase5/results/review_experiment_summary/`, which is what the figure scripts
 read; it skips directories that do not exist, so partial reruns produce partial summaries.
+`make_paper5_srep_figures.py` imports `pubstyle.py` from the same folder and writes to
+`figures/srep/` (set `PAPER5_FIGURE_OUT` to change it). Fig. 1, the schematic overview,
+is not generated by the release scripts, and neither are the schematic panels of the
+earlier preprint figures; their data panels are written as `fig1b_guard_evidence` and
+`fig2b_guard_evidence`.
+`make_paper5_v3_figures.py` keeps the earlier file names: `fig1_problem_setup` is
+Supplementary Fig. S1, `figS4_policy_sensitivity` S2, `fig3_silent_failure_in_loop` S3,
+`figS2_threshold_sensitivity` S4, `figS3_optimized_density_gallery` S5 and
+`figS5_direct_conditioning` S6; its other outputs belong to the earlier preprint version.
+Run `make_paper5_srep_conditioning.py` last to replace S6 with the final print layout.
+It reads either the result-directory CSVs or their deposited copies in
+`data/analysis_tables/`, requires only NumPy and Matplotlib, and checks the strict
+residual counts (114 passes and 30 failures) before rendering.
 `make_paper5_v2_figures.py` and `make_paper5_journal_figures.py` are retained and produce
 the earlier figure sets.
 
@@ -381,11 +447,11 @@ python experiments/phase5/run_direct_floor_conditioning.py  # ~2 minutes, no GPU
 Computes the extreme eigenvalues of the constrained operator for the 18 reduced
 `24x12x6` atlas fields at eight floors and writes
 `experiments/phase5/results/direct_floor_conditioning/direct_floor_conditioning.csv`.
-This is the source of the main-text conditioning figure (Fig. 4), including the
-hierarchy-independent screening rule `rho_min >~ c(rho) * eps / tau` of its panel (c);
+This is the source of the conditioning figure (Supplementary Fig. S6), including the
+hierarchy-independent screening rule `rho_min >~ c(rho) * eps / tau` (Supplementary Eq. S1);
 it is a diagnostic of the operator, and no result of it is used to accept a solve.
 
-### 5.11 Fixed-preconditioner control — the attribution check
+### 5.11 Fixed-preconditioner control — the attribution check (Supplementary Table S9)
 
 Disabling both adaptive preconditioner components leaves a fixed linear V-cycle (the
 flexible outer method then coincides with right-preconditioned GMRES). Rerunning the four
@@ -393,7 +459,13 @@ false-acceptance states, their neighbours, one admissible state, and two severe 
 states under the full guarded protocol:
 
 ```bash
-python experiments/phase5/run_gmg_floor_detector_prospective.py   --preset cantilever_gpu_medium --seeds 47,59,71 --probabilities 0.30,0.35   --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2   --high-residual-threshold 10 --plateau-residual-threshold 10   --coarse-correction-policy none --root-local-correction-mode none   --stack-variant fixed_linear_preconditioner   --out-dir experiments/phase5/results/fixed_precond_control_cantilever
+python experiments/phase5/run_gmg_floor_detector_prospective.py \
+  --preset cantilever_gpu_medium --seeds 47,59,71 --probabilities 0.30,0.35 \
+  --baseline-rho-min 1e-12 --raised-rho-mins 1e-3,1e-2 \
+  --high-residual-threshold 10 --plateau-residual-threshold 10 \
+  --coarse-correction-policy none --root-local-correction-mode none \
+  --stack-variant fixed_linear_preconditioner \
+  --out-dir experiments/phase5/results/fixed_precond_control_cantilever
 # repeat with --seeds 43 --probabilities 0.35, and with
 # --preset bridge_gpu_medium --seeds 43 --probabilities 0.10,0.20
 ```
@@ -463,9 +535,10 @@ untrustworthy.
 
 See `CITATION.cff` for this repository. The accompanying paper is:
 
-> Yang, S., Wang, J., and Wang, Y. (2026). *When a positive SIMP density floor is not
-> enough: solver admissibility and guarded floor selection in matrix-free 3D topology
-> optimization.* arXiv preprint (identifier to be added on announcement).
+> Yang, S., Wang, J., and Wang, Y. (2026). *Iterative solvers in GPU multigrid topology
+> optimization can report false convergence, and a recomputed residual catches it.*
+> Manuscript. An earlier version is available as arXiv:2607.26382,
+> <https://arxiv.org/abs/2607.26382>.
 
 Companion preprints for the operator and hierarchy this study wraps:
 

@@ -35,8 +35,8 @@ authors:
     given-names: Yunsheng
     affiliation: "Santa Clara University"
 license: BSD-3-Clause
-version: "2.2.1"
-date-released: "2026-07-30"
+version: "2.3.0"
+date-released: "2026-10-30"
 keywords:
   - topology optimization
   - SIMP
@@ -50,8 +50,8 @@ keywords:
 preferred-citation:
   type: article
   title: >-
-    When a positive SIMP density floor is not enough: solver admissibility and
-    guarded floor selection in matrix-free 3D topology optimization
+    Iterative solvers in GPU multigrid topology optimization can report false
+    convergence, and a recomputed residual catches it
   authors:
     - family-names: Yang
       given-names: Shaoliang
@@ -60,4 +60,4 @@ preferred-citation:
     - family-names: Wang
       given-names: Yunsheng
   year: 2026
-  notes: "Update journal, volume, DOI, and URL fields after publication."
+  notes: "Manuscript. An earlier version is arXiv:2607.26382. Update journal, volume, DOI, and URL fields after publication."

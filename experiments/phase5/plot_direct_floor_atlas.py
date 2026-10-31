@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -96,7 +98,7 @@ def main() -> None:
         transform=ax.transAxes,
         bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.72, "pad": 2},
     )
-    fig.savefig(out, dpi=240, bbox_inches="tight")
+    fig.savefig(out, dpi=240, bbox_inches="tight", metadata=NO_METADATA)
     print(f"Wrote {out}")
 
 

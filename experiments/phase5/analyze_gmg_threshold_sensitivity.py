@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def _read_rows(path: Path) -> list[dict]:
     with path.open(newline="", encoding="utf-8") as f:
@@ -161,7 +163,7 @@ def main() -> None:
     axes[0].set_ylabel("plateau ratio threshold")
     fig.suptitle("GMG detector threshold sensitivity at plateau residual threshold = 1e-4")
     fig.tight_layout()
-    fig.savefig(out_dir / "fig_gmg_threshold_sensitivity.png", dpi=240, bbox_inches="tight")
+    fig.savefig(out_dir / "fig_gmg_threshold_sensitivity.png", dpi=240, bbox_inches="tight", metadata=NO_METADATA)
 
     print(f"Wrote {out_dir / 'gmg_threshold_sensitivity_grid.csv'}")
     print(f"Wrote {out_dir / 'gmg_threshold_sensitivity_summary.csv'}")

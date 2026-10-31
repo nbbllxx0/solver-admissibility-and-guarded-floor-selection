@@ -8,6 +8,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
+
 
 def _read_rows(path: Path) -> list[dict]:
     if not path.exists():
@@ -271,7 +273,7 @@ def main() -> None:
     ax.set_title("Recorded probe/ladder overhead for current Phase 5 selected solves")
     ax.legend(frameon=True, framealpha=0.95, fontsize=8)
     fig.tight_layout()
-    fig.savefig(out_dir / "fig_gmg_policy_overhead.png", dpi=240, bbox_inches="tight")
+    fig.savefig(out_dir / "fig_gmg_policy_overhead.png", dpi=240, bbox_inches="tight", metadata=NO_METADATA)
 
     print(f"Wrote {out_dir / 'gmg_policy_overhead_cases.csv'}")
     print(f"Wrote {out_dir / 'gmg_policy_overhead_summary.csv'}")

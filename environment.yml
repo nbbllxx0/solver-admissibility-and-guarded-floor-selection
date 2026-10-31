@@ -1,8 +1,9 @@
-# Platform A: the environment used for every result reported in the paper
-# (NVIDIA RTX 4090, SM 8.9, CUDA 12.x).
+# Platform A CuPy (cupy-cuda12x 13.6.0, CUDA 12.x). The paper's reference runs used
+# this CuPy with Python 3.9.23 on an NVIDIA RTX 4090 (SM 8.9); this file pins a
+# newer Python and numpy.
 #
-# On Blackwell GPUs (SM 12.0, e.g. RTX 5090) the cupy-cuda12x wheel raises
-# CUDA_ERROR_NO_BINARY_FOR_GPU. Use environment-blackwell.yml instead, and see
+# On Blackwell GPUs (SM 12.0, e.g. RTX 5090) the cupy-cuda12x wheel can raise
+# CUDA_ERROR_NO_BINARY_FOR_GPU. Use environment-blackwell.yml in that case, and see
 # README section 3 for the two required runtime adjustments.
 name: paper5-solver-admissibility
 channels:

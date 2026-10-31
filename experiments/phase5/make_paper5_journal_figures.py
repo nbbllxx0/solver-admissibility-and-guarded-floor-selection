@@ -8,9 +8,10 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from skimage import measure
+
+NO_METADATA = {"Software": None, "Creator": None, "Producer": None, "CreationDate": None}  # savefig: no tool or date stamps
 
 try:
     import pyvista as pv
@@ -62,160 +63,6 @@ def _set_style() -> None:
             "axes.spines.right": False,
         }
     )
-
-
-def _box(ax, xy, w, h, text, fc, ec=None, fontsize=9, lw=1.2):
-    patch = FancyBboxPatch(
-        xy,
-        w,
-        h,
-        boxstyle="round,pad=0.035,rounding_size=0.06",
-        fc=fc,
-        ec=ec or COLORS["ink"],
-        lw=lw,
-    )
-    ax.add_patch(patch)
-    ax.text(
-        xy[0] + w / 2,
-        xy[1] + h / 2,
-        text,
-        ha="center",
-        va="center",
-        fontsize=fontsize,
-        wrap=True,
-    )
-    return patch
-
-
-def _arrow(ax, start, end):
-    ax.add_patch(
-        FancyArrowPatch(
-            start,
-            end,
-            arrowstyle="-|>",
-            mutation_scale=12,
-            lw=1.3,
-            color=COLORS["ink"],
-            shrinkA=3,
-            shrinkB=3,
-        )
-    )
-
-
-def _polyline_arrow(ax, points, color=None):
-    color = color or COLORS["ink"]
-    if len(points) > 2:
-        xs, ys = zip(*points[:-1])
-        ax.plot(xs, ys, color=color, lw=1.3, solid_capstyle="round")
-    ax.add_patch(
-        FancyArrowPatch(
-            points[-2],
-            points[-1],
-            arrowstyle="-|>",
-            mutation_scale=12,
-            lw=1.3,
-            color=color,
-            shrinkA=0,
-            shrinkB=4,
-        )
-    )
-
-
-def make_policy_schematic() -> None:
-    fig, ax = plt.subplots(figsize=(7.2, 2.45))
-    ax.set_xlim(0, 12.55)
-    ax.set_ylim(1.62, 5.45)
-    ax.axis("off")
-
-    _box(
-        ax,
-        (0.25, 4.00),
-        1.50,
-        0.78,
-        "Density field\nfloor $10^{-12}$",
-        COLORS["pale"],
-    )
-    _box(
-        ax,
-        (2.05, 4.00),
-        1.55,
-        0.78,
-        "100-iter probe\nrecord $r_{50}, r_{100}$",
-        "#EAF3F1",
-    )
-    _box(
-        ax,
-        (3.90, 4.00),
-        1.62,
-        0.78,
-        "Residual rule\nkeep or raise?",
-        "#F2E6D8",
-    )
-    _box(
-        ax,
-        (6.25, 4.62),
-        1.55,
-        0.72,
-        "Solve at\noriginal floor",
-        "#E8F1FA",
-    )
-    _box(
-        ax,
-        (6.25, 3.20),
-        1.55,
-        0.72,
-        "Solve from\nfloor ladder",
-        "#FBE8E1",
-    )
-    _box(
-        ax,
-        (8.70, 3.86),
-        1.78,
-        1.03,
-        "Final guard\ntrue residual\n$\\|f-Ku\\|/\\|f\\|$",
-        "#FFFFFF",
-        ec=COLORS["ink"],
-        lw=1.8,
-        fontsize=8.4,
-    )
-    _box(
-        ax,
-        (11.35, 4.14),
-        0.90,
-        0.74,
-        "accept",
-        COLORS["sand"],
-        fontsize=8.4,
-    )
-    _box(
-        ax,
-        (4.65, 2.02),
-        2.70,
-        0.78,
-        "Fallback ladder\n$10^{-3}\\rightarrow10^{-2}$;\nelse report failure",
-        "#FBE8E1",
-        ec=COLORS["red"],
-        fontsize=7.9,
-    )
-    _arrow(ax, (1.75, 4.39), (2.05, 4.39))
-    _arrow(ax, (3.60, 4.39), (3.90, 4.39))
-    _arrow(ax, (5.52, 4.55), (6.25, 4.98))
-    _polyline_arrow(ax, [(5.52, 4.16), (5.72, 3.30), (5.98, 2.80)])
-    _arrow(ax, (7.80, 4.98), (8.70, 4.55))
-    _arrow(ax, (7.80, 3.56), (8.70, 4.12))
-    _arrow(ax, (10.48, 4.42), (11.35, 4.51))
-    _polyline_arrow(ax, [(9.55, 3.86), (9.55, 3.00), (7.35, 2.41)], color=COLORS["red"])
-    _arrow(ax, (6.00, 2.80), (6.85, 3.20))
-
-    ax.text(5.92, 5.14, "predict keep", fontsize=8.0, ha="center", va="bottom", color=COLORS["gray"])
-    ax.text(5.54, 3.26, "predict raise", fontsize=8.0, ha="right", va="center", color=COLORS["gray"])
-    ax.text(10.92, 4.62, "pass", fontsize=8.0, ha="center", va="bottom", color=COLORS["gray"])
-    ax.text(9.66, 3.32, "guard fail", fontsize=8.0, ha="left", va="center", color=COLORS["red"])
-
-    fig.tight_layout(pad=0.25)
-    fig.savefig(OUT / "fig1_solver_admissibility_policy.png", bbox_inches="tight")
-    fig.savefig(OUT / "fig1_solver_admissibility_policy.pdf", bbox_inches="tight")
-    plt.close(fig)
 
 
 def _floor_label(value) -> str:
@@ -340,8 +187,8 @@ def make_evidence_matrix() -> None:
     ax.text(-0.16, 1.06, "d", transform=ax.transAxes, fontsize=13, fontweight="bold")
 
     fig.tight_layout()
-    fig.savefig(OUT / "fig2_validation_evidence_matrix.png", bbox_inches="tight")
-    fig.savefig(OUT / "fig2_validation_evidence_matrix.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "fig2_validation_evidence_matrix.png", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig2_validation_evidence_matrix.pdf", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -516,8 +363,8 @@ def make_residual_phase_map() -> None:
         borderaxespad=0.0,
     )
     fig.tight_layout()
-    fig.savefig(OUT / "fig3_residual_probe_phase_map.png", bbox_inches="tight")
-    fig.savefig(OUT / "fig3_residual_probe_phase_map.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "fig3_residual_probe_phase_map.png", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig3_residual_probe_phase_map.pdf", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -579,8 +426,8 @@ def make_rescue_histories() -> None:
     )
     fig.suptitle("Baseline failure and ladder rescue histories", y=1.04)
     fig.tight_layout(rect=[0, 0, 1, 0.94])
-    fig.savefig(OUT / "fig4_failure_rescue_histories.png", bbox_inches="tight")
-    fig.savefig(OUT / "fig4_failure_rescue_histories.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "fig4_failure_rescue_histories.png", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig4_failure_rescue_histories.pdf", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -696,8 +543,8 @@ def make_direct_admissibility_atlas() -> None:
     ax.text(-0.18, 1.08, "c", transform=ax.transAxes, fontsize=13, fontweight="bold")
 
     fig.tight_layout()
-    fig.savefig(OUT / "fig5_direct_admissibility_atlas.png", bbox_inches="tight")
-    fig.savefig(OUT / "fig5_direct_admissibility_atlas.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "fig5_direct_admissibility_atlas.png", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig5_direct_admissibility_atlas.pdf", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -800,8 +647,8 @@ def make_transfer_outcome_summary() -> None:
     ax.text(-0.12, 1.06, "b", transform=ax.transAxes, fontsize=13, fontweight="bold")
 
     fig.tight_layout()
-    fig.savefig(OUT / "fig6_transfer_outcome_summary.png", bbox_inches="tight")
-    fig.savefig(OUT / "fig6_transfer_outcome_summary.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "fig6_transfer_outcome_summary.png", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig6_transfer_outcome_summary.pdf", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -866,8 +713,8 @@ def make_threshold_sensitivity() -> None:
 
     fig.suptitle("Threshold sensitivity at plateau residual threshold $10^{-4}$", y=1.03)
     fig.tight_layout()
-    fig.savefig(OUT / "fig8_threshold_sensitivity.pdf", bbox_inches="tight")
-    fig.savefig(OUT / "fig8_threshold_sensitivity.png", bbox_inches="tight")
+    fig.savefig(OUT / "fig8_threshold_sensitivity.pdf", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig8_threshold_sensitivity.png", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -925,8 +772,8 @@ def make_policy_overhead() -> None:
             color=COLORS["red"],
         )
     fig.tight_layout()
-    fig.savefig(OUT / "fig9_policy_overhead.pdf", bbox_inches="tight")
-    fig.savefig(OUT / "fig9_policy_overhead.png", bbox_inches="tight")
+    fig.savefig(OUT / "fig9_policy_overhead.pdf", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig9_policy_overhead.png", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -1034,8 +881,8 @@ def make_fixed_floor_controls() -> None:
     ax.set_title("Solid-element sensitivity perturbation on 24 true-keep states")
     ax.set_ylim(0.0, 1.10)
     fig.tight_layout()
-    fig.savefig(OUT / "fig10_fixed_floor_controls.pdf", bbox_inches="tight")
-    fig.savefig(OUT / "fig10_fixed_floor_controls.png", bbox_inches="tight")
+    fig.savefig(OUT / "fig10_fixed_floor_controls.pdf", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig10_fixed_floor_controls.png", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -1189,8 +1036,8 @@ def make_review_extension_evidence() -> None:
         )
 
     fig.subplots_adjust(left=0.08, right=0.99, bottom=0.21, top=0.88, wspace=0.42)
-    fig.savefig(OUT / "fig11_review_extension_evidence.pdf", bbox_inches="tight")
-    fig.savefig(OUT / "fig11_review_extension_evidence.png", bbox_inches="tight")
+    fig.savefig(OUT / "fig11_review_extension_evidence.pdf", bbox_inches="tight", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig11_review_extension_evidence.png", bbox_inches="tight", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -1332,7 +1179,7 @@ def _render_marching_surface_matplotlib_image(
     ax.set_position([0.0, 0.0, 1.0, 1.0])
     fig.patch.set_facecolor("white")
     buffer = io.BytesIO()
-    fig.savefig(buffer, format="png", facecolor="white", pad_inches=0.02)
+    fig.savefig(buffer, format="png", facecolor="white", pad_inches=0.02, metadata=NO_METADATA)
     plt.close(fig)
     buffer.seek(0)
     image = plt.imread(buffer)
@@ -1450,8 +1297,8 @@ def make_3d_topology_gallery() -> None:
             color=COLORS["gray"],
         )
     fig.subplots_adjust(left=0.02, right=0.99, bottom=0.04, top=0.97, wspace=0.035, hspace=0.16)
-    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.png", facecolor="white")
-    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.pdf", facecolor="white")
+    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.png", facecolor="white", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.pdf", facecolor="white", metadata=NO_METADATA)
     plt.close(fig)
 
 
@@ -1526,15 +1373,14 @@ def relabel_existing_3d_topology_gallery() -> None:
             zorder=3,
         )
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.png", facecolor="white")
-    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.pdf", facecolor="white")
+    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.png", facecolor="white", metadata=NO_METADATA)
+    fig.savefig(OUT / "fig7_3d_topology_transfer_gallery.pdf", facecolor="white", metadata=NO_METADATA)
     plt.close(fig)
 
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     _set_style()
-    make_policy_schematic()
     make_evidence_matrix()
     make_residual_phase_map()
     make_rescue_histories()

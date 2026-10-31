@@ -7,6 +7,44 @@ Note on tags: the first Zenodo-archived GitHub release was tagged `v1.0.0`
 versions 2.0.0 and 2.1.0; the tag numbering rejoins this file's numbering at
 v2.2.0.
 
+## Version 2.3.0 — 2026-10-30
+
+Aligned with the revised manuscript *Iterative solvers in GPU multigrid topology
+optimization can report false convergence, and a recomputed residual catches it*.
+
+- **Convergence-flag logging in the optimization loop.** `solver_v4.py` records the
+  solver's convergence flag, `simp_gpu.py` writes it per state solve, and
+  `run_simp_floor_trajectory.py` reports `solves_flagged_converged`,
+  `false_acceptances` and `solves_at_cap` per run. No solver behaviour changed.
+- **New figure generator `make_paper5_srep_figures.py`** for main-text Figs. 2–6, with
+  its style module `pubstyle.py`; Fig. 1 is a schematic and is not generated here.
+  `make_paper5_v3_figures.py` updated for the supplementary figures.
+- **Schematic code removed from the earlier figure scripts:** `make_paper5_v2_figures.py`,
+  `make_paper5_v3_figures.py` and `make_paper5_journal_figures.py` no longer draw the
+  policy schematic. The guard-evidence panel of the earlier policy figure is now written
+  on its own as `fig1b_guard_evidence` (v2) and `fig2b_guard_evidence` (v3).
+- **Final Supplementary Fig. S6 layout:** `make_paper5_srep_conditioning.py` renders
+  the conditioning data at 165 mm width with separate panel labels and a shared
+  legend. It can use the deposited CSVs without a GPU and checks the strict
+  residual counts (114 passes and 30 failures) and all 18 floor screens.
+  Its default output is now `figures/generated/figS5_direct_conditioning.pdf`.
+- **Figures are written without metadata.** `pubstyle.save` and every `savefig` call
+  clear the tool and date fields of PDF and PNG files, and `pubstyle.save` removes the
+  comment that matplotlib adds to SVG files.
+- **40 analysis tables added (90 in total):** the standard-floor optimization runs
+  (Fig. 3, Supplementary Table S8), the strict held-out replay history (Figs. 1 and
+  2a), the optimized-bridge solve history (Fig. 6c), the replication and FP32 runs
+  (Supplementary Table S15), and a per-seed rerun of the guarded held-out suite.
+- `MANIFEST.csv` `supports` column renumbered to the revised manuscript; five tables
+  used only by the earlier preprint version are marked as such.
+- README: reproduction commands for the standard-floor runs and the per-seed
+  held-out rerun; the per-seed loop now writes each seed to its own folder;
+  figure and table references renumbered; a third hardware setup listed.
+- Platform software corrected from the run records: Platform A ran Python 3.9.23
+  (not 3.10.18) and Platform B ran Python 3.10.18 (not 3.11); the environment files
+  now say they pin newer Python versions. The `cupy-cuda12x` note for Blackwell GPUs
+  is softened: version 13.6.0 with CUDA runtime 12.9 ran on an RTX 5090.
+
 ## Version 2.2.1 — 2026-07-30
 
 - **Optimized-density input arrays deposited (`data/optimized_density_inputs/`).**
@@ -81,7 +119,7 @@ Changes since 1.0.0:
 
 ## Verification for this release
 
-- `python ci/smoke_check.py` passes: 49 files parse, all required files present.
+- `python ci/smoke_check.py` passes: 54 files parse, all required files present.
 - The quick-start GPU command in README section 2 reproduces the reported row
   (`trigger=keep`, 30 FGMRES iterations, `r50 ≈ 5.3e-07`) on both verified platforms.
 

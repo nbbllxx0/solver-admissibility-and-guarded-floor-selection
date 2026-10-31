@@ -1,9 +1,10 @@
 # Platform B: Blackwell-class GPUs (SM 12.0, e.g. RTX 5090), CUDA 13.
 #
-# Used for the second-platform replication, the FP32 precision ablation, the
-# optimized-design perturbation study, and the million-element scale check.
-# Convergence decisions and iteration counts match Platform A; wall times do not
-# and are not comparable with the reported timings.
+# Platform B ran the second-platform replication, the FP32 precision ablation, the
+# optimized-design perturbation study, and the million-element scale check with
+# cupy-cuda13x 14.0.1 and Python 3.10.18; this file pins Python 3.11.
+# Selected floors match Platform A on the six-state replication subset;
+# iteration counts differ by at most one. Wall times are not compared across setups.
 #
 # Two runtime notes (README section 3):
 #   1. export CUPY_ACCELERATORS=""   # CuPy 14 CUB reductions fail to compile on CUDA 13
